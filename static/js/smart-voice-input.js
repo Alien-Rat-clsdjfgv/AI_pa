@@ -379,6 +379,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!recognition) return;
         
         try {
+            // 如果之前已經停止了但仍在運行，強制停止所有活動
+            if (window.forceStop) {
+                console.log('檢測到強制停止標誌，拒絕啟動語音識別');
+                return;
+            }
+            
             // 顯示語言選擇
             languageContainer.classList.remove('d-none');
             
@@ -437,6 +443,9 @@ document.addEventListener('DOMContentLoaded', function() {
             recognition.onresult = handleResult;
             recognition.onerror = handleError;
             recognition.onend = handleEnd;
+            
+            // 清除強制停止標誌
+            window.forceStop = false;
             
             // 開始語音識別
             isRecording = true;
@@ -549,8 +558,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 停止語音識別
                 isRecording = false;
                 
+                // 設置強制停止標誌，阻止任何新的錄音啟動
+                window.forceStop = true;
+                
                 // 清除持久錄音標記 - 確保完全停止
                 window.persistentVoiceRecording = false;
+                
+                // 清除任何可能的自動重啟計時器
+                if (window.pendingRestartTimer) {
+                    clearTimeout(window.pendingRestartTimer);
+                    window.pendingRestartTimer = null;
+                }
                 
                 // 徹底停止語音識別
                 try {
@@ -563,6 +581,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.error('嘗試備用方法停止識別時發生錯誤:', e2);
                     }
                 }
+                
+                // 重新創建一個新的語音識別實例，替換掉舊的
+                try {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    // 放棄舊的實例
+                    recognition = new SpeechRecognition();
+                    // 不要設置任何事件處理程序
+                } catch (e) {
+                    console.error('重置語音識別實例失敗:', e);
+                }
+                
+                console.log('用戶已完全停止語音識別 - 設置了強制停止標誌');
                 
                 // 2秒後隱藏狀態
                 setTimeout(function() {
@@ -968,6 +998,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleEnd() {
         console.log('語音識別自動結束');
         
+        // 檢查是否設置了強制停止標誌 - 如果設置了，不進行任何重新啟動
+        if (window.forceStop) {
+            console.log('檢測到強制停止標誌，不進行任何重啟');
+            return;
+        }
+        
         // 如果設置了持久錄音標誌並且用戶沒有主動停止，立即重新啟動識別
         if (window.persistentVoiceRecording && isRecording) {
             console.log('持久錄音模式：立即重新啟動錄音');
@@ -977,17 +1013,31 @@ document.addEventListener('DOMContentLoaded', function() {
             if (pulseIndicator) {
                 pulseIndicator.style.backgroundColor = 'orange';
                 setTimeout(() => {
-                    if (pulseIndicator) pulseIndicator.style.backgroundColor = 'red';
+                    if (pulseIndicator && !window.forceStop) { // 再次檢查是否設置了強制停止標誌
+                        pulseIndicator.style.backgroundColor = 'red';
+                    }
                 }, 300);
             }
             
             try {
+                // 再次檢查是否設置了強制停止標誌
+                if (window.forceStop) {
+                    console.log('準備重啟時檢測到強制停止標誌，中斷操作');
+                    return;
+                }
+                
                 // 立即重新創建語音識別實例
                 if (recognition) {
                     try {
                         recognition.abort();
                     } catch (error) {
                         // 忽略錯誤
+                    }
+                    
+                    // 再次檢查是否設置了強制停止標誌
+                    if (window.forceStop) {
+                        console.log('創建新實例時檢測到強制停止標誌，中斷操作');
+                        return;
                     }
                     
                     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1002,24 +1052,44 @@ document.addEventListener('DOMContentLoaded', function() {
                     recognition.onerror = handleError;
                     recognition.onend = handleEnd;
                     
-                    // 立即重啟
-                    setTimeout(() => {
+                    // 確保沒有被取消
+                    if (window.forceStop) {
+                        console.log('設置事件處理程序後檢測到強制停止標誌，中斷操作');
+                        return;
+                    }
+                    
+                    // 使用不同的變數名稱存儲計時器ID，避免命名衝突
+                    window.pendingRestartTimer = setTimeout(() => {
+                        // 最後一次檢查是否設置了強制停止標誌
+                        if (window.forceStop) {
+                            console.log('準備啟動時檢測到強制停止標誌，中斷操作');
+                            return;
+                        }
+                        
                         try {
                             recognition.start();
                             voiceStatus.textContent = '繼續接聽中...';
                         } catch (e) {
                             console.error('立即重啟失敗，嘗試延遲重啟', e);
-                            // 如果立即重啟失敗，使用延遲重啟
-                            stopRecording(true);
+                            
+                            // 再次檢查是否設置了強制停止標誌
+                            if (!window.forceStop) {
+                                // 如果立即重啟失敗，使用延遲重啟
+                                stopRecording(true);
+                            }
                         }
                     }, 10);
                 }
             } catch (e) {
                 console.error('持久錄音重啟失敗:', e);
-                // 如果失敗，嘗試傳統方式重啟
-                stopRecording(true);
+                
+                // 再次檢查是否設置了強制停止標誌
+                if (!window.forceStop) {
+                    // 如果失敗，嘗試傳統方式重啟
+                    stopRecording(true);
+                }
             }
-        } else if (isRecording) {
+        } else if (isRecording && !window.forceStop) {
             // 傳統重啟模式（非持久錄音）
             console.log('嘗試標準重啟語音識別');
             stopRecording(true);
