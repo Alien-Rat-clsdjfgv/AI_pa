@@ -12,6 +12,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    <!-- Mobile Optimization CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile-optimized.css') }}">
 </head>
 <body>
     <header>
@@ -84,6 +86,25 @@
             <p class="mb-0">&copy; OpenAI API Tester</p>
         </div>
     </footer>
+
+    <!-- 移動設備快速工具欄 -->
+    <div class="mobile-toolbar">
+        <a href="/" class="btn btn-outline-secondary touch-friendly">
+            <i class="fas fa-home"></i>
+        </a>
+        <a href="/medical" class="btn btn-outline-primary touch-friendly">
+            <i class="fas fa-file-medical"></i>
+        </a>
+        <a href="/medical/cases" class="btn btn-outline-info touch-friendly">
+            <i class="fas fa-list-ul"></i>
+        </a>
+        <a href="/medical/templates" class="btn btn-outline-warning touch-friendly">
+            <i class="fas fa-clipboard-list"></i>
+        </a>
+        <button id="mobileApiKeyButton" class="btn btn-outline-danger touch-friendly" data-bs-toggle="modal" data-bs-target="#apiKeyModal">
+            <i class="fas fa-key"></i>
+        </button>
+    </div>
 
     <!-- API Key Modal -->
     <div class="modal fade" id="apiKeyModal" tabindex="-1" aria-hidden="true">
