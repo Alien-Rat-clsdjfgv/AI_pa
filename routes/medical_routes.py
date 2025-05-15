@@ -4,7 +4,7 @@ from datetime import datetime
 from flask import render_template, request, redirect, url_for, flash, jsonify, session
 from app import app, db
 from models.medical_case import MedicalCase, MedicalSpecialty, Diagnosis, CaseTemplate
-from services.medical_case_generator import generate_medical_case, extract_diagnoses_from_assessment
+from services.medical_case_generator import generate_medical_case, extract_diagnoses_from_assessment, generate_present_illness
 from utils import get_api_key
 
 @app.route('/index')
@@ -270,3 +270,46 @@ def delete_template(id):
         flash(f'Error deleting template: {str(e)}', 'danger')
     
     return redirect(url_for('list_templates'))
+
+@app.route('/medical/generate-present-illness', methods=['POST'])
+def generate_present_illness_endpoint():
+    """Generate just the present illness section"""
+    api_key = get_api_key()
+    if not api_key:
+        return jsonify({'success': False, 'message': 'API key is required'})
+    
+    try:
+        # Get request data
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': '請求數據無效'}), 400
+        
+        # Validate required fields
+        chief_complaint = data.get('chief_complaint')
+        if not chief_complaint:
+            return jsonify({'success': False, 'message': '缺少必要字段: 主訴'}), 400
+            
+        # Prepare parameters
+        params = {
+            'chief_complaint': chief_complaint,
+            'patient_age': data.get('patient_age', 'adult'),
+            'patient_gender': data.get('patient_gender', 'not specified'),
+            'accompanied_symptoms': data.get('accompanied_symptoms', ''),
+            'present_illness_details': data.get('present_illness_details', ''),
+            'model': data.get('model', 'gpt-4o'),
+        }
+        
+        # Generate the present illness
+        result = generate_present_illness(params)
+        
+        if not result.get('success'):
+            return jsonify({
+                'success': False, 
+                'message': result.get('error', '生成現病史失敗')
+            }), 500
+            
+        return jsonify({'success': True, 'result': result})
+        
+    except Exception as e:
+        logging.error(f"Error in generate_present_illness: {str(e)}")
+        return jsonify({'success': False, 'message': f'生成現病史時發生錯誤: {str(e)}'}), 500
