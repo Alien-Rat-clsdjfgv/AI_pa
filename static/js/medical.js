@@ -42,6 +42,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // 現病史按鈕
+    document.querySelectorAll('.present-illness-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const illness = this.getAttribute('data-illness');
+            const textareaId = this.getAttribute('data-target');
+            const textarea = document.getElementById(textareaId);
+            
+            if (textarea) {
+                if (textarea.value) {
+                    textarea.value += "\n" + illness;
+                } else {
+                    textarea.value = illness;
+                }
+            }
+        });
+    });
+    
     // 伴隨症狀與體格檢查(PE)按鈕
     document.querySelectorAll('.symptom-pe-btn').forEach(btn => {
         btn.addEventListener('click', function() {
