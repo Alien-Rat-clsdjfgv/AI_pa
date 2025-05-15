@@ -1,10 +1,11 @@
 import logging
 import json
 from datetime import datetime
-from flask import render_template, request, redirect, url_for, flash, jsonify, session
+from flask import render_template, request, redirect, url_for, flash, jsonify, session, Response
 from app import app, db
 from models.medical_case import MedicalCase, MedicalSpecialty, Diagnosis, CaseTemplate
 from services.medical_case_generator import generate_medical_case, extract_diagnoses_from_assessment, generate_present_illness
+from services.export_service import export_case
 from utils import get_api_key
 
 @app.route('/index')
@@ -165,6 +166,33 @@ def view_case(id):
     """View a specific medical case"""
     case = MedicalCase.query.get_or_404(id)
     return render_template('medical/view_case.html', case=case)
+
+@app.route('/medical/case/<int:id>/export/<format_type>', methods=['GET'])
+def export_medical_case(id, format_type):
+    """Export a medical case in specified format"""
+    case = MedicalCase.query.get_or_404(id)
+    
+    if format_type not in ['txt', 'html', 'json']:
+        flash('不支持的導出格式', 'danger')
+        return redirect(url_for('view_case', id=id))
+    
+    try:
+        content, mime_type, filename = export_case(case, format_type)
+        
+        # 創建回應
+        response = Response(
+            content,
+            mimetype=mime_type,
+            headers={
+                'Content-Disposition': f'attachment; filename="{filename}"',
+                'Content-Type': f'{mime_type}; charset=utf-8'
+            }
+        )
+        return response
+    except Exception as e:
+        logging.error(f"Error exporting case {id} as {format_type}: {str(e)}")
+        flash(f'導出失敗: {str(e)}', 'danger')
+        return redirect(url_for('view_case', id=id))
 
 @app.route('/medical/case/<int:id>/delete', methods=['POST'])
 def delete_case(id):
