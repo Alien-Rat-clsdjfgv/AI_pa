@@ -28,7 +28,7 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label for="specialty" class="form-label">專科</label>
-                                <select class="form-select" id="specialty" name="specialty">
+                                <select class="form-select mb-2" id="specialty" name="specialty">
                                     <option value="">選擇專科</option>
                                     <option value="內科">內科</option>
                                     <option value="外科">外科</option>
@@ -52,6 +52,14 @@
                                     <option value="老年醫學">老年醫學</option>
                                     <option value="其他">其他</option>
                                 </select>
+                                <!-- 常用專科快速按鈕 -->
+                                <div class="d-flex flex-wrap gap-1 mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary specialty-template-btn" data-specialty="內科" data-template="internal-med">內科</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary specialty-template-btn" data-specialty="心臟科" data-template="cardiology">心臟科</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary specialty-template-btn" data-specialty="腸胃科" data-template="gastroenterology">腸胃科</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary specialty-template-btn" data-specialty="呼吸科" data-template="pulmonology">呼吸科</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary specialty-template-btn" data-specialty="急診醫學" data-template="er">急診</button>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label for="complexity" class="form-label">複雜度</label>
@@ -79,7 +87,7 @@
                         
                         <div class="mb-3">
                             <label for="chiefComplaint" class="form-label">主訴</label>
-                            <div class="input-group mb-3">
+                            <div class="input-group mb-2">
                                 <input type="text" class="form-control" id="chiefComplaint" name="chiefComplaint" placeholder="輸入患者主訴...">
                                 <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">常見主訴</button>
                                 <ul class="dropdown-menu dropdown-menu-end">
@@ -100,6 +108,18 @@
                                     <li><a class="dropdown-item" href="#" data-complaint="體重減輕">體重減輕</a></li>
                                     <li><a class="dropdown-item" href="#" data-complaint="疲勞">疲勞</a></li>
                                 </ul>
+                            </div>
+                            
+                            <!-- 常見主訴快速按鈕 -->
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary common-complaint-btn" data-complaint="發燒三天">發燒</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary common-complaint-btn" data-complaint="頭痛一週">頭痛</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary common-complaint-btn" data-complaint="腹痛兩天">腹痛</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary common-complaint-btn" data-complaint="咳嗽兩週">咳嗽</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary common-complaint-btn" data-complaint="呼吸困難">呼吸困難</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary common-complaint-btn" data-complaint="胸痛">胸痛</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary common-complaint-btn" data-complaint="噁心嘔吐">噁心嘔吐</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary common-complaint-btn" data-complaint="頭暈">頭暈</button>
                             </div>
                         </div>
                         
@@ -189,12 +209,20 @@
                         
                         <div class="mb-3">
                             <label for="labComplexity" class="form-label">實驗室檢查詳細度</label>
-                            <select class="form-select" id="labComplexity" name="labComplexity">
+                            <select class="form-select mb-2" id="labComplexity" name="labComplexity">
                                 <option value="基本">基本 (CBC, 基本生化)</option>
                                 <option value="中等" selected>中等 (CBC, CMP, 電解質, 尿檢)</option>
                                 <option value="詳細">詳細 (詳細生化, 特殊檢查)</option>
                                 <option value="全面">全面 (包含所有可能相關檢查)</option>
                             </select>
+                            
+                            <!-- 實驗室檢查規模按鈕 -->
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-info lab-complexity-btn" data-complexity="基本">基本</button>
+                                <button type="button" class="btn btn-sm btn-outline-info lab-complexity-btn" data-complexity="中等">中等</button>
+                                <button type="button" class="btn btn-sm btn-outline-info lab-complexity-btn" data-complexity="詳細">詳細</button>
+                                <button type="button" class="btn btn-sm btn-outline-info lab-complexity-btn" data-complexity="全面">全面</button>
+                            </div>
                         </div>
                         
                         <div class="mb-3">
@@ -396,6 +424,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/medical.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Toggle advanced options
