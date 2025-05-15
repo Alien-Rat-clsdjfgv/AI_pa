@@ -159,7 +159,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // 設置語音識別選項
     recognition.continuous = true;  // 持續聽取
     recognition.interimResults = true; // 實時結果
+    recognition.maxAlternatives = 3; // 獲取多個可能的結果
     recognition.lang = languageSelect.value;
+    
+    // 增加自動重啟功能，防止意外中斷
+    let autoRestartTimer = null;
     
     // 問診問題與欄位映射表 - 用於智能歸類
     const keywordMapping = {
@@ -412,41 +416,72 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 停止錄音
-    function stopRecording() {
+    function stopRecording(autoRestart = false) {
         if (!recognition) return;
         
         try {
-            // 隱藏語言選擇
-            languageContainer.classList.add('d-none');
-            
-            // 更新按鈕
-            voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
-            voiceButton.classList.remove('btn-danger');
-            voiceButton.classList.add('btn-primary');
-            voiceButton.title = '點擊開始語音輸入';
-            
-            // 更新狀態
-            voiceStatus.textContent = '已停止';
-            voiceStatus.classList.remove('bg-danger');
-            voiceStatus.classList.add('bg-dark');
-            
-            // 恢復文本框樣式 (目標模式)
-            if (!autoMode && window.currentTarget) {
-                window.currentTarget.style.border = '';
-                window.currentTarget.style.boxShadow = '';
-                window.currentTarget.classList.remove('voice-input-active');
-                window.currentTarget = null;
-                window.originalContent = '';
+            // 清除任何現有的自動重啟計時器
+            if (autoRestartTimer) {
+                clearTimeout(autoRestartTimer);
+                autoRestartTimer = null;
             }
             
-            // 停止語音識別
-            isRecording = false;
-            recognition.stop();
-            
-            // 2秒後隱藏狀態
-            setTimeout(function() {
-                voiceStatus.classList.add('d-none');
-            }, 2000);
+            if (!autoRestart) {
+                // 常規停止 (用戶點擊了停止按鈕)
+                // 隱藏語言選擇
+                languageContainer.classList.add('d-none');
+                
+                // 更新按鈕
+                voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+                voiceButton.classList.remove('btn-danger');
+                voiceButton.classList.add('btn-primary');
+                voiceButton.title = '點擊開始語音輸入';
+                
+                // 更新狀態
+                voiceStatus.textContent = '已停止';
+                voiceStatus.classList.remove('bg-danger');
+                voiceStatus.classList.add('bg-dark');
+                
+                // 恢復文本框樣式 (目標模式)
+                if (!autoMode && window.currentTarget) {
+                    window.currentTarget.style.border = '';
+                    window.currentTarget.style.boxShadow = '';
+                    window.currentTarget.classList.remove('voice-input-active');
+                    window.currentTarget = null;
+                    window.originalContent = '';
+                }
+                
+                // 停止語音識別
+                isRecording = false;
+                recognition.stop();
+                
+                // 2秒後隱藏狀態
+                setTimeout(function() {
+                    voiceStatus.classList.add('d-none');
+                }, 2000);
+            } else {
+                // 自動重啟模式 (因為瀏覽器自動停止了識別)
+                console.log('語音識別自動中斷，準備重新啟動...');
+                recognition.stop();
+                
+                // 更新狀態（不改變視覺樣式）
+                voiceStatus.textContent = '重新連接中...';
+                
+                // 在短暫延遲後重新啟動錄音
+                autoRestartTimer = setTimeout(function() {
+                    if (isRecording) { // 確保用戶沒有手動停止
+                        try {
+                            console.log('自動重啟語音識別');
+                            recognition.start();
+                            voiceStatus.textContent = '正在聆聽...';
+                        } catch (e) {
+                            console.error('自動重啟語音識別失敗:', e);
+                            // 如果重啟失敗，執行常規停止
+                            stopRecording(false);
+                        }
+                    }
+                }, 300);
+            }
         } catch (e) {
             console.error('語音識別停止失敗:', e);
         }
@@ -789,15 +824,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 處理語音識別結束
     function handleEnd() {
-        // 如果還在錄音狀態，重新啟動
+        console.log('語音識別自動結束');
+        
+        // 如果用戶沒有主動停止，嘗試自動重啟
         if (isRecording) {
-            try {
-                recognition.start();
-                voiceStatus.textContent = '繼續聆聽...';
-            } catch (e) {
-                console.error('重新啟動語音識別失敗:', e);
-                stopRecording();
-            }
+            console.log('嘗試自動重啟語音識別');
+            stopRecording(true); // 使用我們的自動重啟模式
         }
     }
     
