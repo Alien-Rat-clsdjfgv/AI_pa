@@ -109,59 +109,72 @@ document.addEventListener('DOMContentLoaded', function() {
     recognition.interimResults = true; // 實時結果
     recognition.lang = languageSelect.value;
     
-    // 關鍵詞映射表 - 用於智能歸類
+    // 問診問題與欄位映射表 - 用於智能歸類
     const keywordMapping = {
-        // 主訴相關關鍵詞
+        // 主訴相關關鍵詞與問題
         'chief_complaint': [
-            '主訴', '主要症狀', '問題', '困擾', '不舒服', '痛', '疼', '不適', 
-            '難受', '症狀', '感覺', '覺得', '感到'
+            '主訴', '主要症狀', '哪裡不舒服', '什麼問題', '為什麼來看醫生', 
+            '困擾', '不舒服', '痛', '疼', '不適', '難受', '症狀', 
+            '感覺', '覺得', '感到', '今天為什麼來'
         ],
         
-        // 現病史關鍵詞
+        // 現病史關鍵詞與問題
         'history_present_illness': [
+            '這個症狀多久了', '什麼時候開始的', '是突然還是慢慢出現的',
             '病史', '現病史', '這次', '本次', '這一次', '這幾天', '最近', '近期',
             '開始', '發生', '出現', '逐漸', '突然', '持續', '時間', '多久',
-            '一週前', '幾天前', '昨天', '今天早上', '加重', '減輕'
+            '一週前', '幾天前', '昨天', '今天早上', '加重', '減輕',
+            '有沒有什麼會讓症狀變嚴重', '有沒有什麼可以改善症狀'
         ],
         
-        // 過去病史關鍵詞
+        // 過去病史關鍵詞與問題
         'past_medical_history': [
+            '過去有沒有什麼病史', '以前有沒有生過什麼病', '有沒有做過手術',
             '過去病史', '既往史', '以前', '曾經', '之前', '過去', '做過', '得過',
-            '生過', '患過', '手術史', '住院', '曾住院', '過敏史'
+            '生過', '患過', '手術史', '住院', '曾住院', '過敏史',
+            '有沒有高血壓', '有沒有糖尿病', '有沒有心臟病'
         ],
         
-        // 用藥史關鍵詞
+        // 用藥史關鍵詞與問題
         'medications': [
+            '目前有在吃什麼藥嗎', '平常有吃什麼藥', '長期服用什麼藥',
             '藥物', '藥', '用藥', '服用', '吃藥', '在吃', '處方', '西藥', '中藥',
             '成藥', '自行購買', '長期服用', '目前用藥', '現在用藥'
         ],
         
-        // 過敏史關鍵詞
+        // 過敏史關鍵詞與問題
         'allergies': [
+            '有沒有對什麼過敏', '有沒有藥物過敏', '吃了什麼會過敏',
             '過敏', '不能吃', '不能用', '對什麼過敏', '藥物過敏', '食物過敏',
             '花粉過敏', '皮疹', '紅疹', '蕁麻疹', '打針過敏'
         ],
         
-        // 家族史關鍵詞
+        // 家族史關鍵詞與問題
         'family_history': [
+            '家族有人有這種症狀嗎', '家人有類似的病嗎', '你的父母有什麼病史',
             '家族', '家人', '親人', '父親', '母親', '兄弟', '姐妹', '爸爸', '媽媽',
             '遺傳', '基因', '家族病史'
         ],
         
-        // 社會史關鍵詞
+        // 社會史關鍵詞與問題
         'social_history': [
+            '你的工作是什麼', '有抽菸嗎', '有喝酒嗎', '平常生活習慣如何',
             '社會史', '工作', '職業', '生活', '習慣', '嗜好', '抽菸', '吸菸', '喝酒',
-            '飲酒', '熬夜', '運動', '作息', '婚姻', '結婚', '吸毒', '藥物濫用'
+            '飲酒', '熬夜', '運動', '作息', '婚姻', '結婚', '吸毒', '藥物濫用',
+            '有沒有結婚', '獨居嗎'
         ],
         
-        // 身體檢查關鍵詞
+        // 身體檢查關鍵詞與問題
         'physical_examination': [
+            '讓我檢查一下', '看一下你的', '測量一下', '身體檢查顯示',
             '檢查', '觸診', '聽診', '叩診', '視診', '體檢', '體格檢查', '身體檢查',
-            '頭部', '頸部', '胸部', '腹部', '四肢', '皮膚', '神經'
+            '頭部', '頸部', '胸部', '腹部', '四肢', '皮膚', '神經',
+            '伸出舌頭讓我看看', '深呼吸', '說啊'
         ],
         
-        // 生命體徵關鍵詞
+        // 生命體徵關鍵詞與問題
         'vital_signs': [
+            '量一下血壓', '測一下體溫', '測一下血氧', '脈搏是多少',
             '生命徵象', '體溫', '血壓', '心跳', '脈搏', '呼吸', '心率', '體重',
             '身高', '體溫', 'BP', 'HR', 'T', 'RR', 'SPO2', '血氧'
         ]
@@ -169,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 更新智能模式UI
     function updateAutoModeUI() {
-        const modeText = autoMode ? '智能模式' : '目標模式';
+        const modeText = autoMode ? '問診對話模式' : '目標輸入模式';
         const modeClass = autoMode ? 'bg-success' : 'bg-primary';
         
         // 更新按鈕提示
@@ -197,8 +210,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 顯示提示訊息
         const message = autoMode ? 
-            '已切換到智能模式：自動識別關鍵詞並填寫到對應欄位' : 
-            '已切換到目標模式：需選擇特定文本框輸入';
+            '已切換到問診對話模式：自動識別醫生問題和病人回答，輸入到對應欄位' : 
+            '已切換到目標輸入模式：需先選擇要輸入的表單欄位';
             
         // 創建提示元素
         const toast = document.createElement('div');
@@ -441,9 +454,37 @@ document.addEventListener('DOMContentLoaded', function() {
             .filter(sentence => sentence.trim().length > 0);
     }
     
+    // 判斷文本是否包含問句
+    function containsQuestion(text) {
+        const questionPatterns = [
+            /有.+嗎/, /是.+嗎/, /會.+嗎/, /能.+嗎/, /可以.+嗎/,
+            /多久/, /什麼時候/, /怎麼樣/, /如何/, /為什麼/,
+            /哪裡/, /誰/, /幾/, /多少/,
+            /\?/, /？/
+        ];
+        
+        return questionPatterns.some(pattern => pattern.test(text));
+    }
+    
+    // 區分醫生問題和病人回答
+    function processConversation(text) {
+        // 如果文本很短或者包含問句，可能是醫生的提問
+        if (text.length < 15 || containsQuestion(text)) {
+            console.log('識別為醫生提問:', text);
+            return { isQuestion: true, text: text };
+        } else {
+            // 否則可能是病人的回答
+            console.log('識別為病人回答:', text);
+            return { isQuestion: false, text: text };
+        }
+    }
+    
     // 單句文本分類
     function classifySingleText(text, textareas, isSentence = false) {
         if (!text || text.trim().length === 0) return false;
+        
+        // 處理對話性質
+        const conversation = processConversation(text);
         
         // 主訴區域的特殊處理
         const chiefComplaintTextarea = textareas['chief_complaint'] || 
@@ -454,8 +495,48 @@ document.addEventListener('DOMContentLoaded', function() {
         const hpiTextarea = textareas['history_present_illness'] || 
                            document.querySelector('textarea[placeholder*="現病史"]') ||
                            document.querySelector('textarea[aria-label*="現病史"]');
+        
+        // 如果是醫生的問題，先不記錄，只分析問題類型以確定下一個回答的分類
+        if (conversation.isQuestion) {
+            // 記錄這個問題的類型，為下一個回答做準備
+            window.lastQuestionCategory = null;
+            
+            // 計算問題匹配哪個類別
+            let highestScore = 0;
+            let bestCategory = null;
+            
+            for (const [category, keywords] of Object.entries(keywordMapping)) {
+                let score = 0;
+                keywords.forEach(keyword => {
+                    if (text.includes(keyword)) {
+                        score++;
+                    }
+                });
+                
+                if (score > highestScore) {
+                    highestScore = score;
+                    bestCategory = category;
+                }
+            }
+            
+            if (bestCategory && highestScore > 0) {
+                console.log(`問題類型: ${bestCategory}，匹配分數: ${highestScore}`);
+                window.lastQuestionCategory = bestCategory;
+            }
+            
+            return false; // 不記錄醫生問題
+        }
+        
+        // 處理病人回答
+        // 如果有上一個問題類型，優先考慮
+        if (window.lastQuestionCategory && textareas[window.lastQuestionCategory]) {
+            appendTextToTextarea(textareas[window.lastQuestionCategory], text);
+            console.log(`根據上一個問題類型 (${window.lastQuestionCategory}) 記錄回答`);
+            window.lastQuestionCategory = null; // 用完後清除
+            return true;
+        }
                            
-        // 計算每個類別的匹配分數
+        // 如果沒有上一個問題類型，計算匹配分數
         let categoryScores = [];
         
         for (const [category, keywords] of Object.entries(keywordMapping)) {
@@ -468,13 +549,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     matchedKeywords.push(keyword);
                 }
             });
-            
-            // 如果句子中直接提到了類別名稱，增加權重
-            if (text.includes(category.replace(/_/g, ' ')) || 
-                text.includes(category.replace(/_/g, ''))) {
-                score += 3;
-                matchedKeywords.push('*類別名稱*');
-            }
             
             if (score > 0) {
                 categoryScores.push({
@@ -494,7 +568,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const targetTextarea = textareas[bestMatch];
             
             if (targetTextarea) {
-                console.log(`匹配 "${text.substring(0, 20)}..." 到 ${bestMatch}，匹配關鍵詞: ${categoryScores[0].matchedKeywords.join(', ')}`);
+                console.log(`匹配回答 "${text.substring(0, 20)}..." 到 ${bestMatch}，匹配關鍵詞: ${categoryScores[0].matchedKeywords.join(', ')}`);
                 
                 // 添加文本到目標區域
                 appendTextToTextarea(targetTextarea, text);
@@ -502,7 +576,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // 如果沒有明確匹配，使用簡單規則判斷
+        // 如果沒有明確匹配，使用默認規則
         if (text.length < 30 && chiefComplaintTextarea && !isSentence) {
             // 短文本優先考慮主訴
             appendTextToTextarea(chiefComplaintTextarea, text);
