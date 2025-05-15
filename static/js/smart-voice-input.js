@@ -393,6 +393,38 @@ document.addEventListener('DOMContentLoaded', function() {
             voiceStatus.classList.remove('d-none', 'bg-dark');
             voiceStatus.classList.add('bg-danger');
             
+            // 添加錄音中的視覺指示器，一個脈衝動畫
+            let pulseIndicator = document.getElementById('voice-pulse-indicator');
+            if (!pulseIndicator) {
+                pulseIndicator = document.createElement('div');
+                pulseIndicator.id = 'voice-pulse-indicator';
+                pulseIndicator.style.position = 'absolute';
+                pulseIndicator.style.top = '-5px';
+                pulseIndicator.style.right = '-5px';
+                pulseIndicator.style.width = '15px';
+                pulseIndicator.style.height = '15px';
+                pulseIndicator.style.background = 'red';
+                pulseIndicator.style.borderRadius = '50%';
+                pulseIndicator.style.animation = 'pulse 1.5s infinite'; // 使用預定義的脈衝動畫
+                
+                // 添加脈衝動畫
+                const style = document.createElement('style');
+                style.type = 'text/css';
+                style.innerHTML = `
+                    @keyframes pulse {
+                        0% { transform: scale(0.8); opacity: 1; }
+                        50% { transform: scale(1.2); opacity: 0.8; }
+                        100% { transform: scale(0.8); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                voiceButton.style.position = 'relative';
+                voiceButton.appendChild(pulseIndicator);
+            } else {
+                pulseIndicator.style.display = 'block';
+            }
+            
             // 如果是目標模式，高亮當前輸入目標
             if (!autoMode && window.currentTarget) {
                 window.currentTarget.style.border = '2px solid var(--bs-danger)';
@@ -409,9 +441,58 @@ document.addEventListener('DOMContentLoaded', function() {
             // 開始語音識別
             isRecording = true;
             recognition.start();
+            
+            // 添加計時器以顯示錄音已持續時間
+            startRecordingTimer();
         } catch (e) {
             console.error('語音識別啟動失敗:', e);
             stopRecording();
+        }
+    }
+    
+    // 錄音計時器
+    let recordingTimerId = null;
+    let recordingStartTime = null;
+    
+    function startRecordingTimer() {
+        // 重置計時器
+        if (recordingTimerId) {
+            clearInterval(recordingTimerId);
+        }
+        
+        // 記錄開始時間
+        recordingStartTime = new Date();
+        
+        // 創建或更新計時器元素
+        let timerElement = document.getElementById('voice-recording-timer');
+        if (!timerElement) {
+            timerElement = document.createElement('div');
+            timerElement.id = 'voice-recording-timer';
+            timerElement.className = 'mt-1 text-center';
+            timerElement.style.fontSize = '0.8rem';
+            voiceStatus.parentNode.insertBefore(timerElement, voiceStatus.nextSibling);
+        }
+        
+        // 設置計時器
+        recordingTimerId = setInterval(() => {
+            const now = new Date();
+            const duration = Math.floor((now - recordingStartTime) / 1000);
+            const minutes = Math.floor(duration / 60).toString().padStart(2, '0');
+            const seconds = (duration % 60).toString().padStart(2, '0');
+            timerElement.textContent = `錄音時間: ${minutes}:${seconds}`;
+            timerElement.style.display = 'block';
+        }, 1000);
+    }
+    
+    function stopRecordingTimer() {
+        if (recordingTimerId) {
+            clearInterval(recordingTimerId);
+            recordingTimerId = null;
+            
+            const timerElement = document.getElementById('voice-recording-timer');
+            if (timerElement) {
+                timerElement.style.display = 'none';
+            }
         }
     }
     
@@ -424,6 +505,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (autoRestartTimer) {
                 clearTimeout(autoRestartTimer);
                 autoRestartTimer = null;
+            }
+            
+            // 如果不是自動重啟，停止計時器
+            if (!autoRestart) {
+                stopRecordingTimer();
+                
+                // 隱藏脈衝指示器
+                const pulseIndicator = document.getElementById('voice-pulse-indicator');
+                if (pulseIndicator) {
+                    pulseIndicator.style.display = 'none';
+                }
             }
             
             if (!autoRestart) {
@@ -467,20 +559,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 更新狀態（不改變視覺樣式）
                 voiceStatus.textContent = '重新連接中...';
                 
-                // 在短暫延遲後重新啟動錄音
+                // 在短暫延遲後重新啟動錄音 (減少延遲時間以加快重啟速度)
                 autoRestartTimer = setTimeout(function() {
                     if (isRecording) { // 確保用戶沒有手動停止
                         try {
                             console.log('自動重啟語音識別');
+                            
+                            // 重置識別實例以徹底清除之前的狀態
+                            if (recognition) {
+                                try {
+                                    recognition.abort();
+                                } catch (error) {
+                                    console.log('中止舊的語音識別失敗:', error);
+                                }
+                                
+                                // 創建新的語音識別實例
+                                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                                recognition = new SpeechRecognition();
+                                recognition.continuous = true;  
+                                recognition.interimResults = true;
+                                recognition.maxAlternatives = 5; // 增加備選結果數量
+                                recognition.lang = languageSelect.value;
+                                
+                                // 設置事件處理
+                                recognition.onresult = handleResult;
+                                recognition.onerror = handleError;
+                                recognition.onend = handleEnd;
+                            }
+                            
+                            // 啟動語音識別
                             recognition.start();
-                            voiceStatus.textContent = '正在聆聽...';
+                            voiceStatus.textContent = '繼續聆聽...';
+                            
+                            // 視覺反饋，讓用戶知道系統正在努力維持連接
+                            voiceButton.classList.remove('btn-danger');
+                            voiceButton.classList.add('btn-warning');
+                            setTimeout(() => {
+                                voiceButton.classList.remove('btn-warning');
+                                voiceButton.classList.add('btn-danger');
+                            }, 300);
+                            
                         } catch (e) {
                             console.error('自動重啟語音識別失敗:', e);
                             // 如果重啟失敗，執行常規停止
                             stopRecording(false);
                         }
                     }
-                }, 300);
+                }, 100); // 減少到100毫秒，提高重啟速度
             }
         } catch (e) {
             console.error('語音識別停止失敗:', e);
