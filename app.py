@@ -26,15 +26,38 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 # Initialize database
 db.init_app(app)
 
-# Import routes after app is initialized to avoid circular imports
+# Import models and create database tables
 with app.app_context():
+    # Import models
     from models import TestCase, TestRun
-    import routes  # Import routes here to avoid circular imports
+    from models.medical_case import MedicalCase, MedicalSpecialty, Diagnosis, CaseTemplate
+    
+    # Make sure templates directory exists
+    if not os.path.exists(os.path.join(app.root_path, 'templates', 'medical')):
+        os.makedirs(os.path.join(app.root_path, 'templates', 'medical'))
+    
+    # Create database tables
     db.create_all()
     logging.debug("Database tables created")
 
-# Import route functions here to avoid circular imports
+# Import routes directly
+import routes
 from routes import *
+
+# Import medical routes
+try:
+    import routes.medical_routes
+    from routes.medical_routes import *
+    logging.debug("Medical routes imported successfully")
+except ImportError as e:
+    logging.error(f"Error importing medical routes: {e}")
+
+# Add Jinja2 filter to convert new lines to <br> tags
+@app.template_filter('nl2br')
+def nl2br(value):
+    if value:
+        return value.replace('\n', '<br>')
+    return value
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

@@ -7,6 +7,13 @@ from models.medical_case import MedicalCase, MedicalSpecialty, Diagnosis, CaseTe
 from services.medical_case_generator import generate_medical_case, extract_diagnoses_from_assessment
 from utils import get_api_key
 
+@app.route('/index')
+@app.route('/')
+def index():
+    """Alias for the original index route"""
+    # Redirect to original index
+    return redirect(url_for('medical_home'))
+
 @app.route('/medical', methods=['GET'])
 def medical_home():
     """Medical case generator home page"""
@@ -76,7 +83,9 @@ def generate_case():
             if specialty_name:
                 specialty = MedicalSpecialty.query.filter_by(name=specialty_name).first()
                 if not specialty:
-                    specialty = MedicalSpecialty(name=specialty_name)
+                    specialty = MedicalSpecialty(
+                        name=specialty_name
+                    )
                     db.session.add(specialty)
                     db.session.commit()
             
@@ -189,7 +198,10 @@ def add_specialty():
         return redirect(url_for('list_specialties'))
     
     try:
-        specialty = MedicalSpecialty(name=name, description=description)
+        specialty = MedicalSpecialty(
+            name=name,
+            description=description
+        )
         db.session.add(specialty)
         db.session.commit()
         flash('Specialty added successfully', 'success')

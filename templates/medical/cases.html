@@ -1,0 +1,166 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <h1>病例列表</h1>
+        <a href="{{ url_for('medical_home') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> 新增病例
+        </a>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">篩選</h5>
+        </div>
+        <div class="card-body">
+            <form id="filterForm" class="row g-3">
+                <div class="col-md-4">
+                    <label for="filterSpecialty" class="form-label">專科</label>
+                    <select class="form-select" id="filterSpecialty">
+                        <option value="">全部</option>
+                        {% for specialty in specialties %}
+                            <option value="{{ specialty.id }}">{{ specialty.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="filterGender" class="form-label">性別</label>
+                    <select class="form-select" id="filterGender">
+                        <option value="">全部</option>
+                        <option value="男">男</option>
+                        <option value="女">女</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="filterSearch" class="form-label">關鍵詞搜尋</label>
+                    <input type="text" class="form-control" id="filterSearch" placeholder="標題、主訴、診斷...">
+                </div>
+                <div class="col-12 text-end">
+                    <button type="reset" class="btn btn-secondary">重置</button>
+                    <button type="submit" class="btn btn-primary">套用篩選</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Cases Table -->
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">所有病例</h5>
+        </div>
+        <div class="card-body">
+            {% if cases %}
+                <div class="table-responsive">
+                    <table class="table table-hover" id="casesTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>標題</th>
+                                <th>專科</th>
+                                <th>主訴</th>
+                                <th>患者年齡</th>
+                                <th>患者性別</th>
+                                <th>生成日期</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for case in cases %}
+                                <tr class="case-row" 
+                                    data-specialty="{{ case.specialty.id if case.specialty else '' }}"
+                                    data-gender="{{ case.patient_gender }}"
+                                    data-search="{{ case.title }} {{ case.chief_complaint }}">
+                                    <td>{{ case.id }}</td>
+                                    <td>{{ case.title }}</td>
+                                    <td>{{ case.specialty.name if case.specialty else "未指定" }}</td>
+                                    <td>{{ case.chief_complaint }}</td>
+                                    <td>{{ case.patient_age }}</td>
+                                    <td>{{ case.patient_gender }}</td>
+                                    <td>{{ case.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="{{ url_for('view_case', id=case.id) }}" class="btn btn-sm btn-outline-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <form action="{{ url_for('delete_case', id=case.id) }}" method="POST" onsubmit="return confirm('確定要刪除這個病例嗎？此操作無法撤銷。');" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> 尚未生成任何病例。
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup filter functionality
+    const filterForm = document.getElementById('filterForm');
+    const filterSpecialty = document.getElementById('filterSpecialty');
+    const filterGender = document.getElementById('filterGender');
+    const filterSearch = document.getElementById('filterSearch');
+    const caseRows = document.querySelectorAll('.case-row');
+    
+    // Filter the table
+    function applyFilters() {
+        const specialtyValue = filterSpecialty.value;
+        const genderValue = filterGender.value;
+        const searchValue = filterSearch.value.toLowerCase();
+        
+        caseRows.forEach(row => {
+            const specialty = row.getAttribute('data-specialty');
+            const gender = row.getAttribute('data-gender');
+            const searchText = row.getAttribute('data-search').toLowerCase();
+            
+            // Check if row matches filters
+            const matchesSpecialty = !specialtyValue || specialty === specialtyValue;
+            const matchesGender = !genderValue || gender === genderValue;
+            const matchesSearch = !searchValue || searchText.includes(searchValue);
+            
+            // Show/hide row based on filter matches
+            if (matchesSpecialty && matchesGender && matchesSearch) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+    
+    // Handle filter form submission
+    filterForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        applyFilters();
+    });
+    
+    // Handle filter form reset
+    filterForm.addEventListener('reset', function() {
+        // Small delay to ensure form values are reset first
+        setTimeout(() => {
+            caseRows.forEach(row => {
+                row.style.display = '';
+            });
+        }, 10);
+    });
+    
+    // Handle search input (real-time filtering)
+    filterSearch.addEventListener('input', function() {
+        applyFilters();
+    });
+});
+</script>
+{% endblock %}

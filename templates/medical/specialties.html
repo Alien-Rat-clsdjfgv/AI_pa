@@ -1,0 +1,77 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <h1>醫學專科管理</h1>
+        <a href="{{ url_for('medical_home') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> 返回
+        </a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-5">
+            <!-- Add Specialty Form -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">新增專科</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('add_specialty') }}" method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">專科名稱</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">描述</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> 儲存
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-7">
+            <!-- Specialties List -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">專科列表</h5>
+                </div>
+                <div class="card-body">
+                    {% if specialties %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>名稱</th>
+                                        <th>描述</th>
+                                        <th>病例數</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for specialty in specialties %}
+                                        <tr>
+                                            <td>{{ specialty.id }}</td>
+                                            <td>{{ specialty.name }}</td>
+                                            <td>{{ specialty.description }}</td>
+                                            <td>{{ specialty.cases|length }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i> 尚未建立任何專科。使用左側表單新增專科。
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
