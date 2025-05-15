@@ -16,15 +16,83 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
+    // 如果語音輸入UI元素不存在，則創建
+    createVoiceInputUIIfNeeded();
+    
     // 獲取DOM元素
     const voiceButton = document.getElementById('voice-button');
     const voiceStatus = document.getElementById('voice-status');
     const languageContainer = document.getElementById('voice-language-container');
     const languageSelect = document.getElementById('voice-language');
     
+    // 如果仍找不到DOM元素，則報錯並退出
     if (!voiceButton || !voiceStatus || !languageContainer || !languageSelect) {
-        console.error('找不到語音輸入所需的DOM元素');
+        console.error('找不到語音輸入所需的DOM元素，即使已嘗試創建');
         return;
+    }
+    
+    // 創建語音輸入UI元素（如果尚未存在）
+    function createVoiceInputUIIfNeeded() {
+        if (document.getElementById('voice-button')) {
+            return; // 已存在
+        }
+        
+        console.log('正在創建語音輸入UI元素...');
+        
+        // 創建語音輸入按鈕容器
+        const voiceInputContainer = document.createElement('div');
+        voiceInputContainer.id = 'voice-input-button';
+        voiceInputContainer.className = 'position-fixed bottom-0 end-0 mb-5 me-3 d-flex flex-column';
+        voiceInputContainer.style.zIndex = '1050';
+        
+        // 創建狀態顯示
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'voice-status';
+        statusDiv.className = 'd-none mb-2 p-2 rounded text-center text-white bg-dark';
+        statusDiv.textContent = '準備中...';
+        
+        // 創建語言選擇容器
+        const langContainer = document.createElement('div');
+        langContainer.id = 'voice-language-container';
+        langContainer.className = 'mb-2 bg-dark p-2 rounded shadow-sm d-none';
+        
+        // 創建語言選擇下拉框
+        const langSelect = document.createElement('select');
+        langSelect.id = 'voice-language';
+        langSelect.className = 'form-select form-select-sm';
+        
+        // 添加語言選項
+        const languages = [
+            { value: 'zh-TW', text: '中文 (繁體)' },
+            { value: 'zh-CN', text: '中文 (簡體)' },
+            { value: 'en-US', text: '英文' },
+            { value: 'ja-JP', text: '日文' }
+        ];
+        
+        languages.forEach(lang => {
+            const option = document.createElement('option');
+            option.value = lang.value;
+            option.textContent = lang.text;
+            langSelect.appendChild(option);
+        });
+        
+        // 創建語音按鈕
+        const button = document.createElement('button');
+        button.id = 'voice-button';
+        button.className = 'btn btn-primary rounded-circle shadow-lg p-3';
+        button.style.width = '60px';
+        button.style.height = '60px';
+        button.title = '點擊開始語音輸入';
+        button.innerHTML = '<i class="fas fa-microphone"></i>';
+        
+        // 組裝DOM
+        langContainer.appendChild(langSelect);
+        voiceInputContainer.appendChild(statusDiv);
+        voiceInputContainer.appendChild(langContainer);
+        voiceInputContainer.appendChild(button);
+        
+        // 添加到body
+        document.body.appendChild(voiceInputContainer);
     }
     
     // 語音識別變數
@@ -341,6 +409,42 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // 檢查文本是否包含多個句子，可以嘗試分割
+        const sentences = splitTextIntoSentences(text);
+        
+        // 如果只有一個句子，使用單句分類邏輯
+        if (sentences.length <= 1) {
+            classifySingleText(text, textareas);
+            return;
+        }
+        
+        console.log(`檢測到多個句子 (${sentences.length})，嘗試分別分類`);
+        
+        // 多句文本，嘗試將不同句子分類到不同欄位
+        let classifiedCount = 0;
+        
+        // 為每個句子單獨分類
+        sentences.forEach(sentence => {
+            if (sentence.trim().length > 3) { // 忽略太短的句子
+                const classified = classifySingleText(sentence, textareas, true);
+                if (classified) classifiedCount++;
+            }
+        });
+        
+        console.log(`${classifiedCount}/${sentences.length} 句子已成功分類`);
+    }
+    
+    // 將文本拆分為句子
+    function splitTextIntoSentences(text) {
+        // 使用標點符號作為句子分隔符
+        return text.split(/(?<=[。！？.!?])/g)
+            .filter(sentence => sentence.trim().length > 0);
+    }
+    
+    // 單句文本分類
+    function classifySingleText(text, textareas, isSentence = false) {
+        if (!text || text.trim().length === 0) return false;
+        
         // 主訴區域的特殊處理
         const chiefComplaintTextarea = textareas['chief_complaint'] || 
                                       document.querySelector('textarea[placeholder*="主訴"]') ||
@@ -351,80 +455,96 @@ document.addEventListener('DOMContentLoaded', function() {
                            document.querySelector('textarea[placeholder*="現病史"]') ||
                            document.querySelector('textarea[aria-label*="現病史"]');
                            
-        // 如果沒有識別到特定區域，嘗試通過關鍵詞分類
-        let bestMatch = null;
-        let highestScore = 0;
-        
         // 計算每個類別的匹配分數
+        let categoryScores = [];
+        
         for (const [category, keywords] of Object.entries(keywordMapping)) {
             let score = 0;
+            let matchedKeywords = [];
+            
             keywords.forEach(keyword => {
                 if (text.includes(keyword)) {
-                    score++;
+                    score += 1;
+                    matchedKeywords.push(keyword);
                 }
             });
             
-            if (score > highestScore) {
-                highestScore = score;
-                bestMatch = category;
+            // 如果句子中直接提到了類別名稱，增加權重
+            if (text.includes(category.replace(/_/g, ' ')) || 
+                text.includes(category.replace(/_/g, ''))) {
+                score += 3;
+                matchedKeywords.push('*類別名稱*');
+            }
+            
+            if (score > 0) {
+                categoryScores.push({
+                    category,
+                    score,
+                    matchedKeywords
+                });
             }
         }
         
-        // 如果有最佳匹配，將文本添加到相應區域
-        if (bestMatch && textareas[bestMatch]) {
-            console.log(`找到最佳匹配類別: ${bestMatch}，分數: ${highestScore}`);
-            
+        // 根據分數排序
+        categoryScores.sort((a, b) => b.score - a.score);
+        
+        // 如果有匹配的類別
+        if (categoryScores.length > 0 && categoryScores[0].score > 0) {
+            const bestMatch = categoryScores[0].category;
             const targetTextarea = textareas[bestMatch];
-            let currentContent = targetTextarea.value || '';
             
-            // 如果當前內容為空或以句號結尾，直接添加
-            if (currentContent === '' || currentContent.trim().endsWith('.') || 
-                currentContent.trim().endsWith('。')) {
-                targetTextarea.value = currentContent + text;
-            } else {
-                // 否則添加一個空格或標點符號再添加
-                targetTextarea.value = currentContent + '。' + text;
+            if (targetTextarea) {
+                console.log(`匹配 "${text.substring(0, 20)}..." 到 ${bestMatch}，匹配關鍵詞: ${categoryScores[0].matchedKeywords.join(', ')}`);
+                
+                // 添加文本到目標區域
+                appendTextToTextarea(targetTextarea, text);
+                return true;
             }
-            
-            // 高亮顯示目標區域
-            flashTextarea(targetTextarea);
-            
-            // 觸發變更事件
-            const event = new Event('input', { bubbles: true });
-            targetTextarea.dispatchEvent(event);
-            
-            return;
         }
         
-        // 如果沒有特定匹配，優先考慮主訴或現病史
-        if (text.length < 30 && chiefComplaintTextarea) {
-            // 短文本，可能是主訴
-            let currentContent = chiefComplaintTextarea.value || '';
-            chiefComplaintTextarea.value = currentContent ? (currentContent + '，' + text) : text;
-            flashTextarea(chiefComplaintTextarea);
-            
-            // 觸發變更事件
-            const event = new Event('input', { bubbles: true });
-            chiefComplaintTextarea.dispatchEvent(event);
+        // 如果沒有明確匹配，使用簡單規則判斷
+        if (text.length < 30 && chiefComplaintTextarea && !isSentence) {
+            // 短文本優先考慮主訴
+            appendTextToTextarea(chiefComplaintTextarea, text);
+            return true;
         } else if (hpiTextarea) {
-            // 長文本，可能是現病史
-            let currentContent = hpiTextarea.value || '';
-            
-            // 如果當前內容為空或以句號結尾，直接添加
-            if (currentContent === '' || currentContent.trim().endsWith('.') || 
-                currentContent.trim().endsWith('。')) {
-                hpiTextarea.value = currentContent + text;
-            } else {
-                // 否則添加一個空格或標點符號再添加
-                hpiTextarea.value = currentContent + '。' + text;
-            }
-            
-            flashTextarea(hpiTextarea);
-            
-            // 觸發變更事件
-            const event = new Event('input', { bubbles: true });
-            hpiTextarea.dispatchEvent(event);
+            // 較長文本或句子，優先考慮現病史
+            appendTextToTextarea(hpiTextarea, text);
+            return true;
         }
+        
+        return false;
+    }
+    
+    // 向文本區域添加文本
+    function appendTextToTextarea(textarea, text) {
+        if (!textarea) return;
+        
+        let currentContent = textarea.value || '';
+        
+        // 決定如何添加新文本
+        if (currentContent === '') {
+            // 空欄位，直接添加
+            textarea.value = text;
+        } else if (currentContent.trim().endsWith('.') || 
+                  currentContent.trim().endsWith('。') || 
+                  currentContent.trim().endsWith('!') || 
+                  currentContent.trim().endsWith('！') || 
+                  currentContent.trim().endsWith('?') || 
+                  currentContent.trim().endsWith('？')) {
+            // 如果當前內容以句號或其他終止符結尾，添加空格後添加新文本
+            textarea.value = currentContent + ' ' + text;
+        } else {
+            // 否則添加分隔符後添加
+            textarea.value = currentContent + '。' + text;
+        }
+        
+        // 高亮顯示目標區域
+        flashTextarea(textarea);
+        
+        // 觸發變更事件
+        const event = new Event('input', { bubbles: true });
+        textarea.dispatchEvent(event);
     }
     
     // 高亮閃爍文本區域以提示用戶
