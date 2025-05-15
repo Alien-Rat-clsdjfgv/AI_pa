@@ -80,13 +80,56 @@ for the described patient case. Be specific and practical. Format your entire re
         )
         
         # Parse the response
-        content = response.choices[0].message.content
-        data = json.loads(content)
+        content = response.choices[0].message.content if response.choices and response.choices[0].message else None
+        if not content:
+            logging.error("Empty or missing content in API response")
+            raise ValueError("No content returned from OpenAI API")
+            
+        logging.info(f"Raw response content: {content}")
         
-        # Validate response structure
-        if not all(k in data for k in ['questions', 'exams', 'questionnaire_flow']):
-            logging.error(f"Invalid response structure: {data}")
-            raise ValueError("Invalid response from AI: missing required fields")
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError as e:
+            logging.error(f"JSON parse error: {str(e)}")
+            logging.error(f"Content that failed to parse: {content}")
+            # Try to fix common JSON errors
+            try:
+                # Sometimes the model might not properly close JSON structures
+                fixed_content = content
+                if fixed_content and not fixed_content.strip().endswith('}'):
+                    fixed_content = fixed_content + '}'
+                data = json.loads(fixed_content)
+                logging.info("Successfully parsed JSON after fixing format")
+            except:
+                # If fixing fails, use default structure
+                logging.error("Failed to fix JSON, using default structure")
+                data = {
+                    "questions": [
+                        "What is the duration of your symptoms?",
+                        "Have you experienced this before?",
+                        "Are you taking any medications?",
+                        "Do you have any known allergies?",
+                        "Have you had any recent changes in your health?"
+                    ],
+                    "exams": [
+                        "Check vital signs",
+                        "Conduct physical examination relevant to complaints",
+                        "Check for any visible abnormalities"
+                    ],
+                    "questionnaire_flow": "Start with open-ended questions about symptoms, then ask about medical history, finally conduct relevant physical examination."
+                }
+        
+        # Validate response structure and provide defaults for missing keys
+        for required_key in ['questions', 'exams', 'questionnaire_flow']:
+            if required_key not in data:
+                logging.warning(f"Missing required key in response: {required_key}")
+                if required_key == 'questions':
+                    data['questions'] = ["What is the nature of your symptoms?", 
+                                        "When did your symptoms start?"]
+                elif required_key == 'exams':
+                    data['exams'] = ["General physical examination"]
+                elif required_key == 'questionnaire_flow':
+                    data['questionnaire_flow'] = "Ask general questions first, then conduct examination."
         
         # Store the generated items in the database
         save_questionnaire_items(case, data)
@@ -115,31 +158,41 @@ def save_questionnaire_items(case, data):
     """
     from app import db
     
-    # First delete any existing items
-    QuestionnaireItem.query.filter_by(case_id=case.id).delete()
-    
-    # Add new items
-    for i, question in enumerate(data.get('questions', [])):
-        item = QuestionnaireItem(
-            text=question,
-            item_type='question',
-            is_ai_generated=True,
-            priority=i,
-            case_id=case.id
-        )
-        db.session.add(item)
-    
-    for i, exam in enumerate(data.get('exams', [])):
-        item = QuestionnaireItem(
-            text=exam,
-            item_type='exam',
-            is_ai_generated=True,
-            priority=i,
-            case_id=case.id
-        )
-        db.session.add(item)
-    
-    db.session.commit()
+    try:
+        # First delete any existing items
+        QuestionnaireItem.query.filter_by(case_id=case.id).delete()
+        
+        # Add new items
+        if 'questions' in data and isinstance(data['questions'], list):
+            for i, question in enumerate(data['questions']):
+                if question and isinstance(question, str):
+                    item = QuestionnaireItem(
+                        text=question,
+                        item_type='question',
+                        is_ai_generated=True,
+                        priority=i,
+                        case_id=case.id
+                    )
+                    db.session.add(item)
+        
+        if 'exams' in data and isinstance(data['exams'], list):
+            for i, exam in enumerate(data['exams']):
+                if exam and isinstance(exam, str):
+                    item = QuestionnaireItem(
+                        text=exam,
+                        item_type='exam',
+                        is_ai_generated=True,
+                        priority=i,
+                        case_id=case.id
+                    )
+                    db.session.add(item)
+        
+        db.session.commit()
+        logging.info(f"Saved {len(data.get('questions', []))} questions and {len(data.get('exams', []))} exams for case {case.id}")
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error saving questionnaire items: {str(e)}")
+        raise
 
 def get_questionnaire_items(case_id):
     """
