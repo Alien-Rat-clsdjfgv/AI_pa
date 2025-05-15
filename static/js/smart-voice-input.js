@@ -35,6 +35,54 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('語音輸入系統已準備就緒');
     
+    // 監聽按鈕更新事件 (來自其他腳本)
+    window.addEventListener('buttonsUpdated', function() {
+        console.log('檢測到按鈕更新，重新初始化語音輸入系統...');
+        
+        // 重新獲取DOM元素
+        const refreshedVoiceButton = document.getElementById('voice-button');
+        if (!refreshedVoiceButton) {
+            console.log('嘗試重新創建語音輸入UI元素...');
+            createVoiceInputUIIfNeeded();
+            
+            // 重新綁定事件
+            const newVoiceButton = document.getElementById('voice-button');
+            if (newVoiceButton) {
+                // 清除之前的事件監聽器 (如果有)
+                newVoiceButton.replaceWith(newVoiceButton.cloneNode(true));
+                
+                // 獲取更新後的DOM元素
+                const updatedVoiceButton = document.getElementById('voice-button');
+                const updatedVoiceStatus = document.getElementById('voice-status');
+                const updatedLanguageContainer = document.getElementById('voice-language-container');
+                const updatedLanguageSelect = document.getElementById('voice-language');
+                
+                // 重新綁定事件
+                if (updatedVoiceButton) {
+                    updatedVoiceButton.addEventListener('click', function() {
+                        if (isRecording) {
+                            stopRecording();
+                        } else {
+                            if (autoMode) {
+                                startRecording();
+                            } else {
+                                showTargetSelector();
+                            }
+                        }
+                    });
+                    
+                    updatedVoiceButton.addEventListener('dblclick', function(e) {
+                        e.preventDefault();
+                        autoMode = !autoMode;
+                        updateAutoModeUI();
+                    });
+                    
+                    console.log('語音輸入系統事件重新綁定完成');
+                }
+            }
+        }
+    });
+    
     // 創建語音輸入UI元素（如果尚未存在）
     function createVoiceInputUIIfNeeded() {
         if (document.getElementById('voice-button')) {

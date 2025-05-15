@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('醫療頁面初始化開始');
+    
     // 為常見主訴下拉菜單項添加點擊事件
     document.querySelectorAll('[data-complaint]').forEach(item => {
         item.addEventListener('click', function(e) {
@@ -10,6 +12,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // 如果語音輸入按鈕不存在，創建一個臨時的
+    if (!document.getElementById('voice-button')) {
+        console.log('添加臨時語音輸入按鈕');
+        const tempVoiceBtn = document.createElement('div');
+        tempVoiceBtn.id = 'temp-voice-button-placeholder';
+        tempVoiceBtn.style.display = 'none';
+        document.body.appendChild(tempVoiceBtn);
+    }
 
     // 定義各專科常見症狀和相關項目
     const specialtyRelatedItems = {
