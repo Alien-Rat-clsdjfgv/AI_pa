@@ -179,13 +179,40 @@ textarea.voice-target-highlight {
 
 /* 增加按鈕大小在移動設備上 */
 @media (max-width: 767px) {
-    .voice-recognition-ui button {
+    #voice-input-button button {
         width: 70px !important;
         height: 70px !important;
         padding: 1rem !important;
     }
     
-    .voice-recognition-ui button i {
+    #voice-input-button button i {
         font-size: 1.5rem;
     }
+}
+
+/* 語音選擇覆蓋層樣式 */
+#target-selector-overlay {
+    backdrop-filter: blur(4px);
+}
+
+#target-selector-overlay .text-white {
+    max-width: 90%;
+    text-align: center;
+}
+
+/* 語音按鈕動畫 */
+@keyframes pulse-recording {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(220, 53, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+.btn-danger {
+    animation: pulse-recording 2s infinite;
 }
