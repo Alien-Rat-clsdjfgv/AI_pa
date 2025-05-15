@@ -257,13 +257,13 @@
                             <textarea class="form-control mb-2" id="social_history" name="social_history" rows="2" placeholder="輸入社會史..."></textarea>
                             <!-- 社會史按鈕 -->
                             <div class="d-flex flex-wrap gap-1 mt-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="吸菸" data-target="socialHistory">吸菸</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="飲酒" data-target="socialHistory">飲酒</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="藥物濫用" data-target="socialHistory">藥物濫用</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="無業" data-target="socialHistory">無業</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="退休" data-target="socialHistory">退休</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="已婚" data-target="socialHistory">已婚</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="獨居" data-target="socialHistory">獨居</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="吸菸" data-target="social_history">吸菸</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="飲酒" data-target="social_history">飲酒</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="藥物濫用" data-target="social_history">藥物濫用</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="無業" data-target="social_history">無業</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="退休" data-target="social_history">退休</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="已婚" data-target="social_history">已婚</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="獨居" data-target="social_history">獨居</button>
                             </div>
                         </div>
                         
@@ -1026,4 +1026,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+<!-- 語音輸入功能 -->
+<script src="{{ url_for('static', filename='js/smart-voice-input.js') }}"></script>
+
 {% endblock %}
