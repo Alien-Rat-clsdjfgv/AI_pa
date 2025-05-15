@@ -72,24 +72,84 @@ document.addEventListener('DOMContentLoaded', function() {
             complaints: ['皮疹', '搔癢', '皮膚乾燥', '皮膚疼痛', '皮膚腫塊', '脫髮'],
             physical: ['紅疹', '丘疹', '水泡', '濕疹', '鱗屑', '色素沉著'],
             pastHistory: ['異位性皮膚炎', '乾癬', '蕁麻疹', '皮膚真菌感染', '帶狀皰疹']
+        },
+        '精神科': {
+            complaints: ['失眠', '心情低落', '焦慮', '情緒不穩', '幻覺', '妄想', '注意力不集中'],
+            physical: ['精神狀態異常', '思維邏輯紊亂', '情感表達異常', '幻覺表現', '自殘傾向'],
+            pastHistory: ['重度憂鬱症', '雙相情感障礙', '焦慮症', '思覺失調症', '強迫症']
+        },
+        '骨科': {
+            complaints: ['關節疼痛', '關節腫脹', '背痛', '頸痛', '肢體活動受限', '骨折', '扭傷'],
+            physical: ['關節腫脹', '關節活動受限', '肌肉萎縮', '脊椎側彎', '關節不穩'],
+            pastHistory: ['骨折史', '骨質疏鬆症', '腰椎間盤突出', '退化性關節炎', '類風濕性關節炎']
+        },
+        '泌尿科': {
+            complaints: ['排尿困難', '尿頻', '尿急', '尿痛', '血尿', '陰囊腫脹', '性功能障礙'],
+            physical: ['前列腺觸診異常', '外生殖器異常', '陰囊腫脹', '尿道口分泌物'],
+            pastHistory: ['攝護腺肥大', '泌尿道感染', '尿道結石', '性傳播疾病', '睪丸炎']
+        },
+        '婦產科': {
+            complaints: ['月經異常', '陰道出血', '下腹痛', '白帶異常', '乳房腫塊', '懷孕症狀'],
+            physical: ['子宮頸檢查異常', '子宮大小異常', '乳房觸診異常', '骨盆腔觸診疼痛'],
+            pastHistory: ['子宮肌瘤', '卵巢囊腫', '子宮內膜異位症', '多囊性卵巢症候群', '產後出血']
+        },
+        '眼科': {
+            complaints: ['視力模糊', '眼睛疼痛', '紅眼', '畏光', '眼睛乾澀', '複視', '眼壓感'],
+            physical: ['結膜充血', '瞳孔異常', '眼壓升高', '視力下降', '眼底出血'],
+            pastHistory: ['青光眼', '白內障', '黃斑部病變', '結膜炎', '視網膜剝離']
+        },
+        '耳鼻喉科': {
+            complaints: ['耳痛', '聽力下降', '耳鳴', '鼻塞', '流鼻血', '喉嚨痛', '吞嚥困難'],
+            physical: ['外耳道發紅', '鼓膜異常', '鼻腔黏膜腫脹', '扁桃體腫大', '聽力檢查異常'],
+            pastHistory: ['中耳炎', '鼻竇炎', '過敏性鼻炎', '咽喉炎', '聽力喪失']
+        },
+        '兒科': {
+            complaints: ['發燒', '咳嗽', '嘔吐', '腹瀉', '生長遲緩', '不進食', '哭鬧不安'],
+            physical: ['發燒', '脫水', '肺部囉音', '生長曲線異常', '皮疹', '頸部僵硬'],
+            pastHistory: ['早產', '先天性疾病', '小兒哮喘', '熱性痙攣', '幼年糖尿病']
         }
     };
 
     // 初始化專科相關按鈕
     function updateSpecialtyButtons(specialty) {
-        // 如果沒有該專科的數據，使用內科作為默認
-        const specialtyData = specialtyRelatedItems[specialty] || specialtyRelatedItems['內科'];
+        // 檢查專科是否存在，如果不存在就使用通用專科數據
+        // 如果指定的專科在數據中不存在，則使用內科數據作為默認
+        const defaultSpecialty = '內科';
+        const availableSpecialties = Object.keys(specialtyRelatedItems);
+        
+        if (!availableSpecialties.includes(specialty)) {
+            console.log(`找不到專科 "${specialty}" 的相關數據，使用 "${defaultSpecialty}" 數據作為默認`);
+            specialty = defaultSpecialty;
+        }
+        
+        const specialtyData = specialtyRelatedItems[specialty];
         
         console.log(`更新專科按鈕為: ${specialty}`);
+        
+        // 確保數據存在
+        if (!specialtyData) {
+            console.error(`無法找到專科 "${specialty}" 的數據`);
+            return;
+        }
         
         // 更新主訴按鈕
         const complaintButtons = document.querySelector('.common-complaint-buttons-container');
         if (complaintButtons) {
             let buttonsHtml = '';
-            specialtyData.complaints.forEach(complaint => {
-                buttonsHtml += `<button type="button" class="btn btn-sm btn-outline-secondary common-complaint-btn" 
-                                data-complaint="${complaint}" data-target="chief_complaint">${complaint}</button>`;
-            });
+            
+            if (specialtyData.complaints && specialtyData.complaints.length > 0) {
+                specialtyData.complaints.forEach(complaint => {
+                    buttonsHtml += `<button type="button" class="btn btn-sm btn-outline-secondary common-complaint-btn" 
+                                    data-complaint="${complaint}" data-target="chief_complaint">${complaint}</button>`;
+                });
+            } else {
+                // 如果沒有數據，顯示一些通用的按鈕
+                buttonsHtml = `<button type="button" class="btn btn-sm btn-outline-secondary common-complaint-btn" 
+                              data-complaint="發燒" data-target="chief_complaint">發燒</button>
+                              <button type="button" class="btn btn-sm btn-outline-secondary common-complaint-btn" 
+                              data-complaint="頭痛" data-target="chief_complaint">頭痛</button>`;
+            }
+            
             complaintButtons.innerHTML = buttonsHtml;
             
             // 重新綁定事件
@@ -106,16 +166,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             });
+        } else {
+            console.error('找不到主訴按鈕容器');
         }
         
         // 更新體格檢查按鈕
         const peButtons = document.querySelector('.physical-examination-buttons-container');
         if (peButtons) {
             let buttonsHtml = '';
-            specialtyData.physical.forEach(pe => {
-                buttonsHtml += `<button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" 
-                               data-symptom-pe="${pe}" data-target="physical_examination">${pe.split(' ')[0]}</button>`;
-            });
+            
+            if (specialtyData.physical && specialtyData.physical.length > 0) {
+                specialtyData.physical.forEach(pe => {
+                    // 提取按鈕顯示文本（使用第一個詞）
+                    const buttonText = pe.split(' ')[0];
+                    buttonsHtml += `<button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" 
+                                   data-symptom-pe="${pe}" data-target="physical_examination">${buttonText}</button>`;
+                });
+            } else {
+                // 如果沒有數據，顯示一些通用的體檢按鈕
+                buttonsHtml = `<button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" 
+                              data-symptom-pe="發燒 (38.5°C)" data-target="physical_examination">發燒</button>
+                              <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" 
+                              data-symptom-pe="血壓 (140/90 mmHg)" data-target="physical_examination">血壓</button>`;
+            }
+            
             peButtons.innerHTML = buttonsHtml;
             
             // 重新綁定事件
@@ -131,19 +205,33 @@ document.addEventListener('DOMContentLoaded', function() {
                         } else {
                             textarea.value = symptomPe;
                         }
+                    } else {
+                        console.error(`無法找到目標欄位: ${textareaId}`);
                     }
                 });
             });
+        } else {
+            console.error('找不到體格檢查按鈕容器');
         }
         
         // 更新過去病史按鈕
         const pastHistoryButtons = document.querySelector('.past-history-buttons-container');
         if (pastHistoryButtons) {
             let buttonsHtml = '';
-            specialtyData.pastHistory.forEach(history => {
-                buttonsHtml += `<button type="button" class="btn btn-sm btn-outline-info past-history-btn" 
-                               data-history="${history}" data-target="past_medical_history">${history}</button>`;
-            });
+            
+            if (specialtyData.pastHistory && specialtyData.pastHistory.length > 0) {
+                specialtyData.pastHistory.forEach(history => {
+                    buttonsHtml += `<button type="button" class="btn btn-sm btn-outline-info past-history-btn" 
+                                   data-history="${history}" data-target="past_medical_history">${history}</button>`;
+                });
+            } else {
+                // 如果沒有數據，顯示一些通用的過去病史按鈕
+                buttonsHtml = `<button type="button" class="btn btn-sm btn-outline-info past-history-btn" 
+                              data-history="高血壓" data-target="past_medical_history">高血壓</button>
+                              <button type="button" class="btn btn-sm btn-outline-info past-history-btn" 
+                              data-history="糖尿病" data-target="past_medical_history">糖尿病</button>`;
+            }
+            
             pastHistoryButtons.innerHTML = buttonsHtml;
             
             // 重新綁定事件
@@ -159,9 +247,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         } else {
                             textarea.value = history;
                         }
+                    } else {
+                        console.error(`無法找到目標欄位: ${textareaId}`);
                     }
                 });
             });
+        } else {
+            console.error('找不到過去病史按鈕容器');
         }
     }
 
@@ -203,6 +295,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // 初始化按鈕（頁面載入時）
         if (specialtySelect.value) {
             updateSpecialtyButtons(specialtySelect.value);
+            console.log('初始化完成：根據當前選擇的專科更新按鈕', specialtySelect.value);
+        } else {
+            // 如果沒有選擇專科，使用內科作為默認
+            updateSpecialtyButtons('內科');
+            console.log('初始化完成：使用默認專科(內科)更新按鈕');
         }
     }
 
