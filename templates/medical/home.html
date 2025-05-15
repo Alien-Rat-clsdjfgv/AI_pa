@@ -124,6 +124,94 @@
                         </div>
                         
                         <div class="mb-3">
+                            <label for="accompaniedSymptoms" class="form-label">伴隨症狀與體格檢查（PE）</label>
+                            <textarea class="form-control mb-2" id="accompaniedSymptoms" name="accompaniedSymptoms" rows="3" placeholder="輸入伴隨症狀和重要體格檢查發現..."></textarea>
+                            <!-- 伴隨症狀與PE按鈕 -->
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="發燒 (38.5°C)" data-target="accompaniedSymptoms">發燒</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="胸痛 (壓迫感)" data-target="accompaniedSymptoms">胸痛</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="呼吸急促" data-target="accompaniedSymptoms">呼吸急促</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="盜汗" data-target="accompaniedSymptoms">盜汗</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="肺部濕囉音" data-target="accompaniedSymptoms">肺部濕囉音</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="腹部壓痛" data-target="accompaniedSymptoms">腹部壓痛</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="頸部僵硬" data-target="accompaniedSymptoms">頸部僵硬</button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="pastHistory" class="form-label">過去病史</label>
+                            <textarea class="form-control mb-2" id="pastHistory" name="pastHistory" rows="2" placeholder="輸入過去病史..."></textarea>
+                            <!-- 過去病史按鈕 -->
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-info past-history-btn" data-history="高血壓" data-target="pastHistory">高血壓</button>
+                                <button type="button" class="btn btn-sm btn-outline-info past-history-btn" data-history="糖尿病" data-target="pastHistory">糖尿病</button>
+                                <button type="button" class="btn btn-sm btn-outline-info past-history-btn" data-history="高血脂" data-target="pastHistory">高血脂</button>
+                                <button type="button" class="btn btn-sm btn-outline-info past-history-btn" data-history="冠心病" data-target="pastHistory">冠心病</button>
+                                <button type="button" class="btn btn-sm btn-outline-info past-history-btn" data-history="腎功能不全" data-target="pastHistory">腎功能不全</button>
+                                <button type="button" class="btn btn-sm btn-outline-info past-history-btn" data-history="甲狀腺功能低下" data-target="pastHistory">甲狀腺功能低下</button>
+                                <button type="button" class="btn btn-sm btn-outline-info past-history-btn" data-history="肺炎" data-target="pastHistory">肺炎</button>
+                                <button type="button" class="btn btn-sm btn-outline-info past-history-btn" data-history="氣喘" data-target="pastHistory">氣喘</button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="medications" class="form-label">目前用藥</label>
+                            <textarea class="form-control mb-2" id="medications" name="medications" rows="2" placeholder="輸入目前用藥..."></textarea>
+                            <!-- 目前用藥按鈕 -->
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary medication-btn" data-medication="降壓藥" data-target="medications">降壓藥</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary medication-btn" data-medication="口服降糖藥" data-target="medications">口服降糖藥</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary medication-btn" data-medication="胰島素" data-target="medications">胰島素</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary medication-btn" data-medication="阿司匹林" data-target="medications">阿司匹林</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary medication-btn" data-medication="他汀類藥物" data-target="medications">他汀類藥物</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary medication-btn" data-medication="甲狀腺素" data-target="medications">甲狀腺素</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary medication-btn" data-medication="抗生素" data-target="medications">抗生素</button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="allergies" class="form-label">過敏史</label>
+                            <textarea class="form-control mb-2" id="allergies" name="allergies" rows="1" placeholder="輸入過敏史..."></textarea>
+                            <!-- 過敏史按鈕 -->
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger allergy-btn" data-allergy="青黴素過敏" data-target="allergies">青黴素</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger allergy-btn" data-allergy="磺胺類藥物過敏" data-target="allergies">磺胺類</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger allergy-btn" data-allergy="海鮮過敏" data-target="allergies">海鮮</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger allergy-btn" data-allergy="花粉過敏" data-target="allergies">花粉</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger allergy-btn" data-allergy="季節性過敏" data-target="allergies">季節性</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger allergy-btn" data-allergy="無已知過敏" data-target="allergies">無已知過敏</button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="familyHistory" class="form-label">家族史</label>
+                            <textarea class="form-control mb-2" id="familyHistory" name="familyHistory" rows="2" placeholder="輸入家族史..."></textarea>
+                            <!-- 家族史按鈕 -->
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary family-history-btn" data-family-history="父親高血壓" data-target="familyHistory">父親高血壓</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary family-history-btn" data-family-history="母親糖尿病" data-target="familyHistory">母親糖尿病</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary family-history-btn" data-family-history="心血管疾病家族史" data-target="familyHistory">心血管疾病</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary family-history-btn" data-family-history="癌症家族史" data-target="familyHistory">癌症</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary family-history-btn" data-family-history="無特殊家族史" data-target="familyHistory">無特殊家族史</button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="socialHistory" class="form-label">社會史</label>
+                            <textarea class="form-control mb-2" id="socialHistory" name="socialHistory" rows="2" placeholder="輸入社會史..."></textarea>
+                            <!-- 社會史按鈕 -->
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="吸菸" data-target="socialHistory">吸菸</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="飲酒" data-target="socialHistory">飲酒</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="藥物濫用" data-target="socialHistory">藥物濫用</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="無業" data-target="socialHistory">無業</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="退休" data-target="socialHistory">退休</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="已婚" data-target="socialHistory">已婚</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary social-history-btn" data-social-history="獨居" data-target="socialHistory">獨居</button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
                             <label class="form-label">包含部分</label>
                             <div class="row">
                                 <div class="col-md-4">

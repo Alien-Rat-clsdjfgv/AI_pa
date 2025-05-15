@@ -41,4 +41,106 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('chiefComplaint').value = complaint;
         });
     });
+    
+    // 伴隨症狀與體格檢查(PE)按鈕
+    document.querySelectorAll('.symptom-pe-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const symptomPe = this.getAttribute('data-symptom-pe');
+            const textareaId = this.getAttribute('data-target');
+            const textarea = document.getElementById(textareaId);
+            
+            if (textarea) {
+                if (textarea.value) {
+                    textarea.value += "\n" + symptomPe;
+                } else {
+                    textarea.value = symptomPe;
+                }
+            }
+        });
+    });
+    
+    // 過去病史按鈕
+    document.querySelectorAll('.past-history-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const history = this.getAttribute('data-history');
+            const textareaId = this.getAttribute('data-target');
+            const textarea = document.getElementById(textareaId);
+            
+            if (textarea) {
+                if (textarea.value) {
+                    textarea.value += "\n" + history;
+                } else {
+                    textarea.value = history;
+                }
+            }
+        });
+    });
+    
+    // 目前用藥按鈕
+    document.querySelectorAll('.medication-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const medication = this.getAttribute('data-medication');
+            const textareaId = this.getAttribute('data-target');
+            const textarea = document.getElementById(textareaId);
+            
+            if (textarea) {
+                if (textarea.value) {
+                    textarea.value += "\n" + medication;
+                } else {
+                    textarea.value = medication;
+                }
+            }
+        });
+    });
+    
+    // 過敏史按鈕
+    document.querySelectorAll('.allergy-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const allergy = this.getAttribute('data-allergy');
+            const textareaId = this.getAttribute('data-target');
+            const textarea = document.getElementById(textareaId);
+            
+            if (textarea) {
+                if (textarea.value) {
+                    textarea.value += "\n" + allergy;
+                } else {
+                    textarea.value = allergy;
+                }
+            }
+        });
+    });
+    
+    // 家族史按鈕
+    document.querySelectorAll('.family-history-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const familyHistory = this.getAttribute('data-family-history');
+            const textareaId = this.getAttribute('data-target');
+            const textarea = document.getElementById(textareaId);
+            
+            if (textarea) {
+                if (textarea.value) {
+                    textarea.value += "\n" + familyHistory;
+                } else {
+                    textarea.value = familyHistory;
+                }
+            }
+        });
+    });
+    
+    // 社會史按鈕
+    document.querySelectorAll('.social-history-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const socialHistory = this.getAttribute('data-social-history');
+            const textareaId = this.getAttribute('data-target');
+            const textarea = document.getElementById(textareaId);
+            
+            if (textarea) {
+                if (textarea.value) {
+                    textarea.value += "\n" + socialHistory;
+                } else {
+                    textarea.value = socialHistory;
+                }
+            }
+        });
+    });
 });
