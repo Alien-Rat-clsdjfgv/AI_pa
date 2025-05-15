@@ -301,6 +301,14 @@ document.addEventListener('DOMContentLoaded', function() {
             updateSpecialtyButtons('內科');
             console.log('初始化完成：使用默認專科(內科)更新按鈕');
         }
+        
+        // 確保語音輸入功能正常工作
+        // 在更新按鈕後，向全局window發送一個事件，通知語音輸入系統重新檢查按鈕
+        setTimeout(function() {
+            const event = new CustomEvent('buttonsUpdated');
+            window.dispatchEvent(event);
+            console.log('向語音輸入系統發送按鈕更新通知');
+        }, 500);
     }
 
     // 實驗室檢查規模按鈕

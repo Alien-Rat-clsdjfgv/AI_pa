@@ -4,6 +4,8 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('初始化智能語音輸入系統...');
+    
     // 檢查瀏覽器支援
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
         console.warn('您的瀏覽器不支援語音識別功能');
@@ -30,6 +32,8 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('找不到語音輸入所需的DOM元素，即使已嘗試創建');
         return;
     }
+    
+    console.log('語音輸入系統已準備就緒');
     
     // 創建語音輸入UI元素（如果尚未存在）
     function createVoiceInputUIIfNeeded() {
