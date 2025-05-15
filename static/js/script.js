@@ -36,7 +36,7 @@ function checkApiConnection() {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ api_key: '' }) // Empty key will check session
+        body: JSON.stringify({ use_env_key: true }) // Try to use env key if available
     })
     .then(response => response.json())
     .then(data => {

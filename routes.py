@@ -60,20 +60,36 @@ def connect_api():
     """API endpoint to test API key connection"""
     data = request.get_json()
     api_key = data.get('api_key', '')
+    use_env_key = data.get('use_env_key', False)
+    
+    # If no API key provided but use_env_key is true, try to get from environment
+    if not api_key and use_env_key:
+        api_key = os.environ.get("OPENAI_API_KEY", "")
+        if api_key:
+            logging.info("Using API key from environment variables")
     
     if not api_key:
-        return jsonify({'success': False, 'message': 'API key is required'})
+        return jsonify({'success': False, 'message': 'No API key available'})
     
     # Test the API key
     success, message = validate_api_key(api_key)
     
     if success:
         session['api_key'] = api_key
-        return jsonify({
-            'success': True, 
-            'message': 'API connection successful',
-            'models': get_available_models(api_key)
-        })
+        try:
+            models = get_available_models(api_key)
+            return jsonify({
+                'success': True, 
+                'message': 'API connection successful',
+                'models': models
+            })
+        except Exception as e:
+            logging.error(f"Error fetching models: {str(e)}")
+            return jsonify({
+                'success': True,
+                'message': f'API connected but error loading models: {str(e)}',
+                'models': ['gpt-4o', 'gpt-4', 'gpt-3.5-turbo']  # Fallback models
+            })
     else:
         return jsonify({'success': False, 'message': message})
 
