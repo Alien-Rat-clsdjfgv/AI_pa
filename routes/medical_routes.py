@@ -14,6 +14,53 @@ def index():
     # Redirect to original index
     return redirect(url_for('medical_home'))
 
+@app.route('/api/connect', methods=['POST'])
+def connect_api():
+    """API endpoint to test API key connection"""
+    from openai_client import validate_api_key, get_available_models
+    
+    data = request.get_json()
+    api_key = data.get('api_key', '')
+    use_env_key = data.get('use_env_key', False)
+    
+    # If no API key provided but use_env_key is true, try to get from environment
+    if not api_key and use_env_key:
+        api_key = get_api_key()
+        if api_key:
+            logging.info("Using API key from environment variables")
+    
+    if not api_key:
+        return jsonify({'success': False, 'message': 'No API key available'})
+    
+    # Test the API key
+    success, message = validate_api_key(api_key)
+    
+    if success:
+        session['api_key'] = api_key
+        try:
+            models = get_available_models(api_key)
+            return jsonify({
+                'success': True, 
+                'message': 'API connection successful',
+                'models': models
+            })
+        except Exception as e:
+            logging.error(f"Error fetching models: {str(e)}")
+            return jsonify({
+                'success': True,
+                'message': f'API connected but error loading models: {str(e)}',
+                'models': []
+            })
+    else:
+        return jsonify({'success': False, 'message': message})
+
+@app.route('/api/disconnect', methods=['POST'])
+def disconnect_api():
+    """Remove API key from session"""
+    if 'api_key' in session:
+        session.pop('api_key')
+    return jsonify({'success': True, 'message': 'API key removed from session'})
+
 @app.route('/medical', methods=['GET'])
 def medical_home():
     """Medical case generator home page"""
