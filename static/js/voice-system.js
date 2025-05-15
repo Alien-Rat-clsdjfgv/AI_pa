@@ -695,10 +695,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 獲取所有可用文本區域
         const textareas = document.querySelectorAll('textarea');
-        if (textareas.length === 0) return;
+        if (textareas.length === 0) {
+            console.log('未找到任何文本框');
+            return;
+        }
+        
+        console.log(`找到 ${textareas.length} 個文本框`);
         
         // 將長文本拆分成句子進行處理
         if (text.length > 100 || text.includes('。') || text.includes('.')) {
+            console.log('檢測到長文本，拆分為句子處理');
             const sentences = splitTextIntoSentences(text);
             sentences.forEach(sentence => {
                 if (sentence.trim()) classifySingleText(sentence, textareas, true);
@@ -710,104 +716,155 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function splitTextIntoSentences(text) {
         // 根據常見句子終止符拆分
-        return text.split(/(?<=[。.!?！？])\s*/);
+        const sentences = text.split(/(?<=[。.!?！？])\s*/);
+        console.log(`文本被拆分為 ${sentences.length} 個句子`);
+        return sentences;
     }
     
     function classifySingleText(text, textareas, isSentence = false) {
+        console.log(`分類文本: "${text}", 是否為句子: ${isSentence}`);
         const lowerText = text.toLowerCase();
         
         // 字段信息定義 - 每個字段包含相關關鍵詞和對應的表單ID
         const fieldInfo = [
             {
                 name: '主訴',
-                keywords: ['主訴', '抱怨', '不舒服', '困擾', '麻煩', '感覺不適', '感到', '覺得'],
-                id: 'chief_complaint',
+                keywords: ['主訴', '抱怨', '不舒服', '困擾', '麻煩', '感覺不適', '感到', '覺得', '疼痛', '痛', '痛感'],
+                commonSymptoms: [
+                    '頭痛', '頭暈', '噁心', '嘔吐', '胸悶', '胸痛', '腹痛', '腹瀉', '便秘', '發燒', '咳嗽', 
+                    '呼吸困難', '喉嚨痛', '疲勞', '體重減輕', '食慾不振', '多尿', '尿頻', '尿急', '尿痛', 
+                    '血尿', '關節痛', '肌肉痛', '皮疹', '搔癢', '視力模糊', '聽力下降', '心悸', '盜汗',
+                    '水腫', '痙攣', '麻木', '刺痛', '失眠', '精神不振', '焦慮', '情緒低落'
+                ],
+                id: 'chiefComplaint',
+                camelCaseId: 'chiefComplaint',
                 label: '主訴'
             },
             {
                 name: '現病史',
-                keywords: ['現病史', '病史', '發生', '開始', '出現', '以前', '幾天前', '昨天', '前天', '早上', '下午'],
-                id: 'history_present_illness',
+                keywords: ['現病史', '病史', '發生', '開始', '出現', '以前', '幾天前', '昨天', '前天', '早上', '下午', '最近', '近期', '一周前'],
+                timeRelated: ['天前', '周前', '個月前', '年前', '小時前', '分鐘前', '昨天', '今天早上', '上周', '上個月'],
+                id: 'presentIllness',
+                camelCaseId: 'presentIllness',
                 label: '現病史'
             },
             {
                 name: '過去病史',
-                keywords: ['過去病史', '過去', '曾經有過', '以前得過', '曾因', '多年前', '既往'],
-                id: 'past_medical_history',
+                keywords: ['過去病史', '過去', '曾經有過', '以前得過', '曾因', '多年前', '既往', '慢性病'],
+                commonConditions: ['高血壓', '糖尿病', '心臟病', '肝炎', '肺結核', '哮喘', '腎病', '癌症', '腦中風', '痛風'],
+                id: 'pastMedicalHistory',
+                camelCaseId: 'pastMedicalHistory',
                 label: '過去病史'
             },
             {
                 name: '過敏史',
-                keywords: ['過敏', '不良反應', '禁忌', '不能使用', '嚴禁', '忌用'],
+                keywords: ['過敏', '不良反應', '禁忌', '不能使用', '嚴禁', '忌用', '對...過敏'],
+                commonAllergies: ['青黴素', '磺胺', '海鮮', '花粉', '灰塵', '乳膠', '花生', '貝類'],
                 id: 'allergies',
+                camelCaseId: 'allergies',
                 label: '過敏史'
             },
             {
                 name: '用藥史',
-                keywords: ['用藥', '藥物', '服用', '吃藥', '處方', '非處方', '藥品', '治療中'],
+                keywords: ['用藥', '藥物', '服用', '吃藥', '處方', '非處方', '藥品', '治療中', '藥', '每天服用'],
+                commonMeds: ['降壓藥', '降糖藥', '降脂藥', '抗生素', '抗凝藥', '激素', '維生素', '安眠藥', '抗抑鬱', '止痛藥'],
                 id: 'medications',
+                camelCaseId: 'medications',
                 label: '用藥史'
             },
             {
                 name: '家族史',
-                keywords: ['家族', '父親', '母親', '兄弟', '姐妹', '親人', '遺傳', '遺傳性'],
-                id: 'family_history',
+                keywords: ['家族', '父親', '母親', '兄弟', '姐妹', '親人', '遺傳', '遺傳性', '爸爸', '媽媽', '祖父', '祖母'],
+                relations: ['父親', '母親', '兄弟', '姐妹', '兒子', '女兒', '爸爸', '媽媽', '祖父', '祖母', '外公', '外婆'],
+                id: 'familyHistory',
+                camelCaseId: 'familyHistory',
                 label: '家族史'
             },
             {
                 name: '社會史',
-                keywords: ['社會', '工作', '職業', '工種', '吸菸', '抽菸', '喝酒', '飲酒', '習慣', '生活習慣'],
-                id: 'social_history',
+                keywords: ['社會', '工作', '職業', '工種', '吸菸', '抽菸', '喝酒', '飲酒', '習慣', '生活習慣', '運動', '飲食'],
+                habits: ['吸菸', '抽菸', '喝酒', '飲酒', '運動', '飲食習慣', '作息', '熬夜', '壓力'],
+                id: 'socialHistory',
+                camelCaseId: 'socialHistory',
                 label: '社會史'
             },
             {
                 name: '體格檢查',
-                keywords: ['體檢', '檢查發現', '體格檢查', '專科檢查', '檢查時', '查體', '視診', '聽診', '叩診', '觸診'],
-                id: 'physical_examination',
+                keywords: ['體檢', '檢查發現', '體格檢查', '專科檢查', '檢查時', '查體', '視診', '聽診', '叩診', '觸診', '身高', '體重'],
+                examTerms: ['視診', '聽診', '叩診', '觸診', '腹部檢查', '心臟檢查', '肺部檢查', '神經檢查', '皮膚檢查', '眼底檢查'],
+                id: 'physicalExam',
+                camelCaseId: 'physicalExam',
                 label: '體格檢查'
             },
             {
                 name: '生命體徵',
-                keywords: ['體徵', '血壓', '脈搏', '呼吸', '體溫', '氧飽和度', 'BP', 'HR', 'RR', 'BT', '發燒', '血糖'],
-                id: 'vital_signs',
+                keywords: ['體徵', '血壓', '脈搏', '呼吸', '體溫', '氧飽和度', 'BP', 'HR', 'RR', 'BT', '發燒', '血糖', 'SPO2'],
+                vitalTypes: ['血壓', '脈搏', '呼吸', '體溫', '氧飽和度', 'BP', 'HR', 'RR', 'BT', 'SpO2'],
+                id: 'vitalSigns',
+                camelCaseId: 'vitalSigns',
                 label: '生命體徵'
             },
             {
                 name: '實驗室檢查',
-                keywords: ['實驗室', '化驗', '檢驗', '血常規', '尿常規', '生化', '免疫', '檢測'],
-                id: 'laboratory_results',
+                keywords: ['實驗室', '化驗', '檢驗', '血常規', '尿常規', '生化', '免疫', '檢測', '血液檢查', '採血'],
+                testTypes: ['血常規', '尿常規', '生化', '電解質', '肝功能', '腎功能', '凝血', 'CRP', 'ESR', '血脂'],
+                id: 'labResults',
+                camelCaseId: 'labResults',
                 label: '實驗室檢查'
             },
             {
                 name: '影像學檢查',
-                keywords: ['影像', '超音波', 'X光', 'CT', 'MRI', '磁共振', '超聲', '放射', '造影'],
-                id: 'imaging_results',
+                keywords: ['影像', '超音波', 'X光', 'CT', 'MRI', '磁共振', '超聲', '放射', '造影', '照片', '掃描'],
+                imagingTypes: ['X光', 'CT', 'MRI', '超音波', '超聲波', '核磁', '血管造影', 'PET', '內視鏡'],
+                id: 'imagingResults',
+                camelCaseId: 'imagingResults',
                 label: '影像學檢查'
             },
             {
                 name: '評估',
-                keywords: ['評估', '診斷', '考慮', '可能是', '傾向於', '診斷為', '評價為', '初步診斷', '印象', '斷為'],
+                keywords: ['評估', '診斷', '考慮', '可能是', '傾向於', '診斷為', '評價為', '初步診斷', '印象', '斷為', '判斷', '確診'],
+                diagnosisTerms: ['診斷為', '考慮', '可能性大', '初步診斷', '臨床診斷', '鑒別診斷', '確診'],
                 id: 'assessment',
+                camelCaseId: 'assessment',
                 label: '評估診斷'
             },
             {
                 name: '計劃',
-                keywords: ['計劃', '處理', '安排', '治療', '用藥', '建議', '手術', '處置', '隨訪', '複查'],
+                keywords: ['計劃', '處理', '安排', '治療', '用藥', '建議', '手術', '處置', '隨訪', '複查', '治療方案'],
+                planTypes: ['用藥', '手術', '治療', '隨訪', '複查', '轉診', '住院', '觀察', '進一步檢查'],
                 id: 'plan',
+                camelCaseId: 'plan',
                 label: '治療計劃'
             }
         ];
         
         // 特殊處理問診問題 - 如果包含問號，可能是醫生在提問
         if (text.includes('?') || text.includes('？')) {
-            // 檢查是否是常見問診問題
-            console.log('識別為醫生提問:', text);
+            console.log('檢測到可能的問診內容 (包含問號)');
             // 這裡可以不做特殊處理，或者將其歸入現病史
-            const historyTextarea = findTextareaById(textareas, 'history_present_illness');
+            const historyTextarea = findTextareaById(textareas, 'presentIllness');
             if (historyTextarea) {
-                appendTextToTextarea(historyTextarea, `醫生提問: ${text}\n`);
+                console.log('將問診內容添加到現病史');
+                appendTextToTextarea(historyTextarea, `問診: ${text}\n`);
                 flashTextarea(historyTextarea);
                 return;
+            }
+        }
+        
+        // 主動檢測是否是症狀或常見病症
+        const chiefComplaintField = fieldInfo.find(f => f.name === '主訴');
+        if (chiefComplaintField && chiefComplaintField.commonSymptoms) {
+            for (let symptom of chiefComplaintField.commonSymptoms) {
+                if (lowerText.includes(symptom.toLowerCase())) {
+                    console.log(`檢測到常見症狀: ${symptom}`);
+                    const textarea = findTextareaById(textareas, chiefComplaintField.camelCaseId);
+                    if (textarea) {
+                        console.log(`將包含症狀 "${symptom}" 的文本添加到主訴`);
+                        appendTextToTextarea(textarea, text + '\n');
+                        flashTextarea(textarea);
+                        return;
+                    }
+                }
             }
         }
         
@@ -822,14 +879,28 @@ document.addEventListener('DOMContentLoaded', function() {
             // 檢查字段名稱是否直接出現在文本中
             if (text.includes(field.name)) {
                 score += 10;
+                console.log(`文本包含字段名稱 "${field.name}", 加 10 分`);
             }
             
             // 檢查關鍵詞
             field.keywords.forEach(keyword => {
                 if (lowerText.includes(keyword.toLowerCase())) {
                     score += 3;
+                    console.log(`文本包含關鍵詞 "${keyword}", 加 3 分`);
                 }
             });
+            
+            // 檢查字段特有的關鍵詞列表
+            for (const key in field) {
+                if (Array.isArray(field[key]) && key !== 'keywords') {
+                    field[key].forEach(term => {
+                        if (lowerText.includes(term.toLowerCase())) {
+                            score += 2;
+                            console.log(`文本包含特定術語 "${term}", 加 2 分`);
+                        }
+                    });
+                }
+            }
             
             // 如果是句子級別的分類，加權不同
             if (isSentence) {
@@ -838,9 +909,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (lowerText.startsWith(keyword.toLowerCase() + '：') || 
                         lowerText.startsWith(keyword.toLowerCase() + ':')) {
                         score += 10;
+                        console.log(`句子以關鍵詞 "${keyword}" 開頭, 加 10 分`);
                     }
                 });
+                
+                // 如果句子包含時間相關詞，可能是現病史
+                if (field.name === '現病史' && field.timeRelated) {
+                    for (let timePhrase of field.timeRelated) {
+                        if (lowerText.includes(timePhrase.toLowerCase())) {
+                            score += 5;
+                            console.log(`文本包含時間相關詞 "${timePhrase}", 加 5 分`);
+                        }
+                    }
+                }
             }
+            
+            console.log(`字段 "${field.name}" 的匹配分數: ${score}`);
             
             // 更新最佳匹配
             if (score > highestScore) {
@@ -849,67 +933,151 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
+        console.log(`最佳匹配字段: ${bestMatch ? bestMatch.name : '無'}, 分數: ${highestScore}`);
+        
         // 如果找到匹配並且分數足夠高
         if (bestMatch && highestScore >= 3) {
-            const matchedTextarea = findTextareaById(textareas, bestMatch.id);
+            console.log(`找到匹配字段 "${bestMatch.name}", 分數 ${highestScore} >= 3`);
+            
+            // 嘗試通過camelCaseId查找，然後是普通id
+            let matchedTextarea = findTextareaById(textareas, bestMatch.camelCaseId);
+            if (!matchedTextarea) {
+                matchedTextarea = findTextareaById(textareas, bestMatch.id);
+            }
+            
             if (matchedTextarea) {
                 // 如果文本中包含字段名稱，刪除它
                 let processedText = text;
                 if (text.includes(bestMatch.name)) {
                     processedText = text.replace(bestMatch.name, '').replace(/[:：]\s*/, '');
+                    console.log(`從文本中移除字段名稱，處理後: "${processedText}"`);
                 }
                 
                 appendTextToTextarea(matchedTextarea, isSentence ? processedText : processedText + '\n');
                 flashTextarea(matchedTextarea);
-                console.log(`將文本 "${text}" 分類到 "${bestMatch.name}"`);
+                console.log(`將文本分類到 "${bestMatch.name}" 字段`);
+                return;
+            } else {
+                console.log(`找不到ID為 "${bestMatch.camelCaseId}" 或 "${bestMatch.id}" 的文本框`);
+            }
+        }
+        
+        // 基於內容特徵的兜底分類
+        if (text.length < 15) {
+            // 短文本可能是症狀或主訴
+            console.log('短文本，可能是主訴');
+            const chiefTextarea = findTextareaById(textareas, 'chiefComplaint');
+            if (chiefTextarea) {
+                appendTextToTextarea(chiefTextarea, text + '\n');
+                flashTextarea(chiefTextarea);
+                console.log(`短文本歸類為主訴: "${text}"`);
+                return;
+            }
+        } else if (lowerText.includes('年') || lowerText.includes('月') || lowerText.includes('日') || 
+                   lowerText.includes('週') || lowerText.includes('天') || 
+                   /(\d+)[天週月年]/.test(lowerText)) {
+            // 含有時間表達的較長文本，可能是現病史
+            console.log('檢測到時間相關表達，可能是現病史');
+            const historyTextarea = findTextareaById(textareas, 'presentIllness');
+            if (historyTextarea) {
+                appendTextToTextarea(historyTextarea, text + (isSentence ? '' : '\n'));
+                flashTextarea(historyTextarea);
+                console.log(`時間相關文本歸類為現病史: "${text}"`);
                 return;
             }
         }
         
         // 如果沒有明確匹配，放入現病史或主訴
         if (isSentence) {
-            const historyTextarea = findTextareaById(textareas, 'history_present_illness');
+            console.log('句子無明確分類，嘗試添加到現病史');
+            const historyTextarea = findTextareaById(textareas, 'presentIllness');
             if (historyTextarea) {
                 appendTextToTextarea(historyTextarea, text);
                 flashTextarea(historyTextarea);
-                console.log(`未明確分類，將句子 "${text}" 添加到現病史`);
+                console.log(`未明確分類的句子添加到現病史: "${text}"`);
                 return;
             }
         } else {
-            const chiefTextarea = findTextareaById(textareas, 'chief_complaint');
+            console.log('文本無明確分類，嘗試添加到主訴');
+            const chiefTextarea = findTextareaById(textareas, 'chiefComplaint');
             if (chiefTextarea) {
                 appendTextToTextarea(chiefTextarea, text + '\n');
                 flashTextarea(chiefTextarea);
-                console.log(`未明確分類，將文本 "${text}" 添加到主訴`);
+                console.log(`未明確分類的文本添加到主訴: "${text}"`);
                 return;
             }
         }
         
         // 最後嘗試，找到任何可用的文本區域
         if (textareas.length > 0) {
+            console.log('未找到適合的字段，添加到第一個可用文本框');
             appendTextToTextarea(textareas[0], text + '\n');
             flashTextarea(textareas[0]);
-            console.log(`沒有找到適合的字段，將文本 "${text}" 添加到第一個文本框`);
+            console.log(`添加到第一個文本框: "${text}"`);
         }
     }
     
     function findTextareaById(textareas, id) {
+        console.log(`嘗試查找ID為 "${id}" 的文本框`);
+        
+        // 輸出所有可用的textarea的ID和name，用於調試
+        textareas.forEach(ta => {
+            console.log(`可用文本框: id=${ta.id}, name=${ta.name}`);
+        });
+        
         // 嘗試通過ID精確匹配
         for (let textarea of textareas) {
-            if (textarea.id === id) return textarea;
+            if (textarea.id === id) {
+                console.log(`找到精確匹配: ${id}`);
+                return textarea;
+            }
+        }
+        
+        // 處理ID轉換 - 適配現有命名習慣
+        const idMappings = {
+            'chief_complaint': 'chiefComplaint',
+            'history_present_illness': 'presentIllness',
+            'past_medical_history': 'pastMedicalHistory',
+            'medications': 'medications',
+            'allergies': 'allergies',
+            'family_history': 'familyHistory',
+            'social_history': 'socialHistory',
+            'physical_examination': 'physicalExam',
+            'vital_signs': 'vitalSigns',
+            'laboratory_results': 'labResults',
+            'imaging_results': 'imagingResults',
+            'assessment': 'assessment',
+            'plan': 'plan'
+        };
+        
+        // 嘗試使用映射的ID
+        if (idMappings[id]) {
+            console.log(`嘗試使用映射ID: ${id} -> ${idMappings[id]}`);
+            for (let textarea of textareas) {
+                if (textarea.id === idMappings[id]) {
+                    console.log(`使用映射ID找到匹配: ${idMappings[id]}`);
+                    return textarea;
+                }
+            }
         }
         
         // 嘗試通過ID部分匹配
         for (let textarea of textareas) {
-            if (textarea.id && textarea.id.includes(id)) return textarea;
+            if (textarea.id && textarea.id.toLowerCase().includes(id.toLowerCase())) {
+                console.log(`找到部分匹配: ${textarea.id} 包含 ${id}`);
+                return textarea;
+            }
         }
         
         // 嘗試通過name屬性匹配
         for (let textarea of textareas) {
-            if (textarea.name === id || (textarea.name && textarea.name.includes(id))) 
+            if (textarea.name === id || (textarea.name && textarea.name.toLowerCase().includes(id.toLowerCase()))) {
+                console.log(`通過name屬性找到匹配: ${textarea.name}`);
                 return textarea;
+            }
         }
         
+        console.log(`未找到ID為 "${id}" 的文本框`);
         return null;
     }
     
