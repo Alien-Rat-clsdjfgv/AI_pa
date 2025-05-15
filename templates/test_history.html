@@ -1,0 +1,273 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Test Case History</h5>
+        <a href="{{ url_for('index') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus me-1"></i> New Test
+        </a>
+    </div>
+    <div class="card-body">
+        {% if test_cases %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Model</th>
+                            <th>Created</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for test_case in test_cases %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('test_case_detail', id=test_case.id) }}">
+                                        {{ test_case.name }}
+                                    </a>
+                                </td>
+                                <td>{{ test_case.model }}</td>
+                                <td>{{ test_case.created_at.strftime('%m/%d/%Y %H:%M') }}</td>
+                                <td>{{ test_case.updated_at.strftime('%m/%d/%Y %H:%M') }}</td>
+                                <td>
+                                    <a href="{{ url_for('test_case_detail', id=test_case.id) }}" class="btn btn-sm btn-outline-info me-1">
+                                        <i class="fas fa-info-circle"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-success me-1 run-test-btn" data-test-id="{{ test_case.id }}">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-test-btn" data-test-id="{{ test_case.id }}" data-test-name="{{ test_case.name }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> No test cases have been saved yet.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Run Test Modal -->
+<div class="modal fade" id="runResultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Test Results</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <div>
+                        <span class="badge bg-primary" id="modalResponseTime">0 ms</span>
+                        <span class="badge bg-info" id="modalTokenCount">0 tokens</span>
+                    </div>
+                    <span class="badge" id="modalStatus"></span>
+                </div>
+                
+                <div class="alert alert-danger d-none" id="modalError"></div>
+                
+                <div class="bg-dark text-light p-3 rounded">
+                    <pre id="modalResponse" style="white-space: pre-wrap;"></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" class="btn btn-primary" id="viewDetailsBtn">View Details</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the test case "<span id="deleteTestName"></span>"?</p>
+                <p class="text-danger">This action cannot be undone and will delete all associated test runs.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle run test button clicks
+        const runButtons = document.querySelectorAll('.run-test-btn');
+        runButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const testId = this.getAttribute('data-test-id');
+                runExistingTest(testId);
+            });
+        });
+
+        // Handle delete button clicks
+        const deleteButtons = document.querySelectorAll('.delete-test-btn');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const testId = this.getAttribute('data-test-id');
+                const testName = this.getAttribute('data-test-name');
+                
+                // Show confirmation modal
+                document.getElementById('deleteTestName').textContent = testName;
+                const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+                modal.show();
+                
+                // Set up the confirm delete button
+                document.getElementById('confirmDeleteBtn').onclick = function() {
+                    deleteTestCase(testId);
+                };
+            });
+        });
+
+        // Function to run an existing test
+        function runExistingTest(testId) {
+            // Check if API is connected
+            if (!isApiConnected()) {
+                alert('Please connect your OpenAI API key first.');
+                const apiKeyModal = new bootstrap.Modal(document.getElementById('apiKeyModal'));
+                apiKeyModal.show();
+                return;
+            }
+
+            // Show loading state
+            const button = document.querySelector(`.run-test-btn[data-test-id="${testId}"]`);
+            const originalHtml = button.innerHTML;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            button.disabled = true;
+
+            // Call API to run the test
+            fetch(`/api/test-case/${testId}/run`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Reset button state
+                button.innerHTML = originalHtml;
+                button.disabled = false;
+
+                if (data.success) {
+                    // Show result in modal
+                    showResultModal(data);
+                    
+                    // Set the view details link
+                    document.getElementById('viewDetailsBtn').href = `/test-case/${testId}`;
+                } else {
+                    showResultModal({
+                        success: false,
+                        error_message: data.message,
+                        duration_ms: 0,
+                        usage: { total_tokens: 0 }
+                    });
+                }
+            })
+            .catch(error => {
+                // Reset button state
+                button.innerHTML = originalHtml;
+                button.disabled = false;
+                
+                // Show error
+                alert('Error running test: ' + error.message);
+            });
+        }
+
+        // Function to delete a test case
+        function deleteTestCase(testId) {
+            fetch(`/api/test-case/${testId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal and refresh page
+                    bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
+                    window.location.reload();
+                } else {
+                    alert('Error deleting test case: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error.message);
+            });
+        }
+
+        // Function to show the result modal
+        function showResultModal(data) {
+            const modal = document.getElementById('runResultModal');
+            const responseTimeEl = document.getElementById('modalResponseTime');
+            const tokenCountEl = document.getElementById('modalTokenCount');
+            const statusEl = document.getElementById('modalStatus');
+            const errorEl = document.getElementById('modalError');
+            const responseEl = document.getElementById('modalResponse');
+
+            // Set response time and token count
+            responseTimeEl.textContent = `${data.duration_ms} ms`;
+            tokenCountEl.textContent = `${data.usage?.total_tokens || 0} tokens`;
+            
+            // Set status badge
+            statusEl.textContent = data.status || 'Unknown';
+            if (data.status === 'completed') {
+                statusEl.classList.add('bg-success');
+                statusEl.classList.remove('bg-danger', 'bg-warning');
+            } else if (data.status === 'failed') {
+                statusEl.classList.add('bg-danger');
+                statusEl.classList.remove('bg-success', 'bg-warning');
+            } else {
+                statusEl.classList.add('bg-warning');
+                statusEl.classList.remove('bg-success', 'bg-danger');
+            }
+            
+            // Handle error message if present
+            if (data.error_message) {
+                errorEl.textContent = data.error_message;
+                errorEl.classList.remove('d-none');
+            } else {
+                errorEl.classList.add('d-none');
+            }
+            
+            // Set response content
+            if (data.response) {
+                if (typeof data.response === 'object') {
+                    responseEl.textContent = JSON.stringify(data.response, null, 2);
+                } else {
+                    responseEl.textContent = data.response;
+                }
+            } else {
+                responseEl.textContent = 'No response data available.';
+            }
+            
+            // Show the modal
+            const modalInstance = new bootstrap.Modal(modal);
+            modalInstance.show();
+        }
+
+        // Helper function to check if API is connected
+        function isApiConnected() {
+            return document.getElementById('apiConnected').classList.contains('d-block') ||
+                   !document.getElementById('apiConnected').classList.contains('d-none');
+        }
+    });
+</script>
+{% endblock %}

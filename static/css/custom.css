@@ -1,0 +1,86 @@
+/* Additional custom styles to complement the Bootstrap theme */
+
+/* Pre elements for code display */
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-bottom: 0;
+}
+
+/* Token chart container */
+#tokenChart {
+    max-height: 200px;
+}
+
+/* Fade in animation for newly loaded content */
+.fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Loading spinner styles */
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+/* Make JSON response display more readable */
+pre.formatted-json {
+    line-height: 1.5;
+}
+
+/* Better spacing for form controls */
+.form-label {
+    margin-bottom: 0.3rem;
+    font-weight: 500;
+}
+
+/* Improve table readability */
+.table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(var(--bs-info-rgb), 0.1);
+}
+
+/* Nav tabs styling improvement */
+.nav-tabs .nav-link {
+    margin-bottom: -1px;
+    border: 1px solid transparent;
+    border-top-left-radius: var(--bs-nav-tabs-border-radius);
+    border-top-right-radius: var(--bs-nav-tabs-border-radius);
+}
+
+/* Code block styling */
+.code-block {
+    border-radius: 0.25rem;
+    padding: 1rem;
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+}
+
+/* Badge styling improvement */
+.badge {
+    font-weight: normal;
+    padding: 0.35em 0.65em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+    
+    .card-header > div {
+        margin-top: 0.5rem;
+    }
+}
