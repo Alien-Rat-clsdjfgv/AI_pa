@@ -124,6 +124,22 @@
                         </div>
                         
                         <div class="mb-3">
+                            <label for="presentIllness" class="form-label">現病史 (Present Illness)</label>
+                            <textarea class="form-control mb-2" id="presentIllness" name="presentIllness" rows="3" placeholder="輸入患者現病史..."></textarea>
+                            <!-- 現病史按鈕 -->
+                            <div class="d-flex flex-wrap gap-1 mt-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary present-illness-btn" data-illness="症狀持續時間: 3天" data-target="presentIllness">持續3天</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary present-illness-btn" data-illness="症狀持續時間: 1週" data-target="presentIllness">持續1週</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary present-illness-btn" data-illness="症狀程度: 逐漸加重" data-target="presentIllness">逐漸加重</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary present-illness-btn" data-illness="症狀程度: 間歇性發作" data-target="presentIllness">間歇性發作</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary present-illness-btn" data-illness="緩解因素: 休息後改善" data-target="presentIllness">休息後改善</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary present-illness-btn" data-illness="加重因素: 活動後加重" data-target="presentIllness">活動後加重</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary present-illness-btn" data-illness="相關治療: 自行服用藥物無效" data-target="presentIllness">自行用藥無效</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary present-illness-btn" data-illness="病史發展: 近期有類似症狀病史" data-target="presentIllness">近期有類似症狀</button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
                             <label for="accompaniedSymptoms" class="form-label">伴隨症狀與體格檢查（PE）</label>
                             <textarea class="form-control mb-2" id="accompaniedSymptoms" name="accompaniedSymptoms" rows="3" placeholder="輸入伴隨症狀和重要體格檢查發現..."></textarea>
                             <!-- 伴隨症狀與PE按鈕 -->
