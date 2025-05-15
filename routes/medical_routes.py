@@ -19,7 +19,11 @@ def medical_home():
     """Medical case generator home page"""
     # Check for API key connection
     api_key = get_api_key()
-    api_connected = api_key is not None
+    api_connected = False
+    if api_key:
+        # Try to validate the API key
+        from openai_client import validate_api_key
+        api_connected, _ = validate_api_key(api_key)
     
     # Get medical specialties for dropdown
     specialties = MedicalSpecialty.query.order_by(MedicalSpecialty.name).all()
