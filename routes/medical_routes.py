@@ -166,6 +166,49 @@ def view_case(id):
     case = MedicalCase.query.get_or_404(id)
     return render_template('medical/view_case.html', case=case)
 
+@app.route('/medical/case/<int:id>/questionnaire', methods=['GET'])
+def case_questionnaire(id):
+    """Generate and view questionnaire for a medical case"""
+    from services.questionnaire_generator import get_questionnaire_items
+    
+    case = MedicalCase.query.get_or_404(id)
+    
+    try:
+        questionnaire = get_questionnaire_items(id)
+        return render_template(
+            'medical/recommended_questions.html',
+            case=case,
+            recommended_questions=questionnaire['questions'],
+            recommended_exams=questionnaire['exams'],
+            questionnaire_flow=questionnaire['questionnaire_flow']
+        )
+    except Exception as e:
+        flash(f'Error generating questionnaire: {str(e)}', 'danger')
+        return redirect(url_for('view_case', id=id))
+
+@app.route('/medical/save-questionnaire', methods=['POST'])
+def save_questionnaire():
+    """Save selected questionnaire items"""
+    from services.questionnaire_generator import save_selected_items
+    
+    data = request.get_json()
+    case_id = data.get('case_id')
+    questions = data.get('questions', [])
+    exams = data.get('exams', [])
+    
+    if not case_id:
+        return jsonify({'success': False, 'message': 'Case ID is required'})
+    
+    try:
+        success = save_selected_items(case_id, questions, exams)
+        if success:
+            return jsonify({'success': True, 'message': 'Questionnaire saved successfully'})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to save questionnaire'})
+    except Exception as e:
+        logging.error(f"Error saving questionnaire: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)})
+
 @app.route('/medical/case/<int:id>/delete', methods=['POST'])
 def delete_case(id):
     """Delete a medical case"""

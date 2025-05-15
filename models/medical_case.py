@@ -40,6 +40,7 @@ class MedicalCase(db.Model):
     # Foreign keys
     specialty_id = db.Column(db.Integer, db.ForeignKey('medical_specialty.id'), nullable=True)
     diagnoses = db.relationship('Diagnosis', backref='case', lazy=True, cascade="all, delete-orphan")
+    questionnaire_items = db.relationship('QuestionnaireItem', backref='case', lazy=True, cascade="all, delete-orphan")
     
     # Generation metadata
     prompt_used = db.Column(db.Text, nullable=True)
@@ -102,6 +103,39 @@ class Diagnosis(db.Model):
             'description': self.description,
             'icd_code': self.icd_code,
             'case_id': self.case_id
+        }
+
+class QuestionnaireItem(db.Model):
+    """Model for storing questionnaire items for medical cases"""
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.Text, nullable=False)
+    item_type = db.Column(db.String(20), nullable=False)  # 'question' or 'exam'
+    is_ai_generated = db.Column(db.Boolean, default=True)
+    is_selected = db.Column(db.Boolean, default=False)
+    priority = db.Column(db.Integer, default=0)  # For ordering
+    
+    # Foreign keys
+    case_id = db.Column(db.Integer, db.ForeignKey('medical_case.id'), nullable=False)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f"<QuestionnaireItem {self.item_type}: {self.text[:30]}...>"
+    
+    def to_dict(self):
+        """Convert the questionnaire item to a dictionary"""
+        return {
+            'id': self.id,
+            'text': self.text,
+            'item_type': self.item_type,
+            'is_ai_generated': self.is_ai_generated,
+            'is_selected': self.is_selected,
+            'priority': self.priority,
+            'case_id': self.case_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
 
 class CaseTemplate(db.Model):
