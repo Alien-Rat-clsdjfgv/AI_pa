@@ -169,6 +169,118 @@ def parse_case_content(content):
     
     return sections
 
+def generate_present_illness(params):
+    """
+    Generate a detailed Present Illness section based on provided parameters
+    
+    Args:
+        params (dict): Parameters for generating the present illness
+            - chief_complaint (str): Primary complaint or reason for visit
+            - patient_age (int): Patient's age
+            - patient_gender (str): Patient's gender
+            - accompanied_symptoms (str, optional): Accompanying symptoms
+            - present_illness_details (str, optional): Additional details about the present illness
+            - model (str, optional): AI model to use
+            
+    Returns:
+        dict: Generated present illness text and metadata
+    """
+    api_key = get_api_key()
+    if not api_key:
+        raise ValueError("API key is required")
+    
+    client = OpenAI(api_key=api_key)
+    
+    # Extract parameters
+    chief_complaint = params.get('chief_complaint', '')
+    age = params.get('patient_age', 'adult')
+    gender = params.get('patient_gender', 'not specified')
+    accompanied_symptoms = params.get('accompanied_symptoms', '')
+    present_illness_details = params.get('present_illness_details', '')
+    
+    if not chief_complaint:
+        raise ValueError("Chief complaint is required to generate present illness")
+    
+    # System message for present illness generation
+    system_message = """You are an experienced medical professional creating a detailed History of Present Illness (HPI) 
+for a patient case. Focus only on creating a medically accurate and detailed HPI section based on the provided information.
+Include details about symptom onset, duration, characteristics, aggravating/alleviating factors, and relevant negative findings."""
+    
+    # Build the prompt
+    prompt = f"""Create a detailed History of Present Illness (HPI) for a {age} year old {gender} patient with the following:
+
+Chief Complaint: {chief_complaint}
+"""
+    
+    if accompanied_symptoms:
+        prompt += f"Accompanied Symptoms: {accompanied_symptoms}\n"
+    
+    if present_illness_details:
+        prompt += f"Additional Details: {present_illness_details}\n"
+    
+    prompt += """
+Please create a detailed, realistic History of Present Illness that includes:
+1. When and how the symptoms started
+2. Progression of symptoms over time
+3. Severity and characteristics of symptoms
+4. Aggravating and alleviating factors
+5. Related symptoms or relevant negative findings
+6. Prior treatments attempted (if any)
+7. Impact on daily activities
+
+Ensure the HPI is coherent, realistic, and appropriate for the chief complaint. 
+Write in a professional medical style using proper medical terminology.
+"""
+    
+    # Set up the messages
+    messages = [
+        {"role": "system", "content": system_message},
+        {"role": "user", "content": prompt}
+    ]
+    
+    # Set up request parameters
+    request_params = {
+        "model": params.get('model', 'gpt-4o'),
+        "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 800,
+    }
+    
+    try:
+        # Make the API call
+        logging.info(f"Generating present illness with chief complaint: {chief_complaint}")
+        response = client.chat.completions.create(**request_params)
+        
+        if not response or not response.choices or len(response.choices) == 0:
+            raise ValueError("Empty response received from OpenAI API")
+            
+        content = response.choices[0].message.content
+        
+        if not content:
+            raise ValueError("Empty content received from OpenAI API")
+        
+        # Return the generated present illness with metadata
+        return {
+            'success': True,
+            'present_illness': content,
+            'metadata': {
+                'generated_at': datetime.utcnow().isoformat(),
+                'model_used': params.get('model', 'gpt-4o'),
+                'parameters': {
+                    'chief_complaint': chief_complaint,
+                    'patient_age': age,
+                    'patient_gender': gender,
+                }
+            }
+        }
+        
+    except Exception as e:
+        logging.error(f"Error generating present illness: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
 def extract_diagnoses_from_assessment(assessment_text):
     """
     Extract possible diagnoses from assessment section

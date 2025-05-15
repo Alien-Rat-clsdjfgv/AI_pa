@@ -125,7 +125,20 @@
                         
                         <div class="mb-3">
                             <label for="presentIllness" class="form-label">現病史 (Present Illness)</label>
-                            <textarea class="form-control mb-2" id="presentIllness" name="presentIllness" rows="3" placeholder="輸入患者現病史..."></textarea>
+                            <div class="d-flex mb-2">
+                                <textarea class="form-control" id="presentIllness" name="presentIllness" rows="3" placeholder="輸入患者現病史..."></textarea>
+                                <button type="button" class="btn btn-outline-success ms-2" id="generatePresentIllnessBtn" style="white-space: nowrap;">
+                                    <i class="fas fa-magic me-1"></i> 自動生成
+                                </button>
+                            </div>
+                            <div class="alert alert-info d-none" id="generatingPresentIllnessAlert">
+                                <div class="d-flex align-items-center">
+                                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                    <span>正在生成現病史...</span>
+                                </div>
+                            </div>
+                            <div class="alert alert-danger d-none" id="presentIllnessErrorAlert"></div>
+                            
                             <!-- 現病史按鈕 -->
                             <div class="d-flex flex-wrap gap-1 mt-2">
                                 <button type="button" class="btn btn-sm btn-outline-primary present-illness-btn" data-illness="症狀持續時間: 3天" data-target="presentIllness">持續3天</button>
@@ -553,6 +566,82 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // Present Illness Generation
+    const generatePresentIllnessBtn = document.getElementById('generatePresentIllnessBtn');
+    const presentIllnessTextarea = document.getElementById('presentIllness');
+    const generatingPresentIllnessAlert = document.getElementById('generatingPresentIllnessAlert');
+    const presentIllnessErrorAlert = document.getElementById('presentIllnessErrorAlert');
+    
+    if (generatePresentIllnessBtn) {
+        generatePresentIllnessBtn.addEventListener('click', function() {
+            // Get necessary values
+            const chiefComplaint = document.getElementById('chiefComplaint').value;
+            const patientAge = document.getElementById('patientAge').value;
+            const patientGender = document.getElementById('patientGender').value;
+            const accompaniedSymptoms = document.getElementById('accompaniedSymptoms')?.value || '';
+            
+            // Validate chief complaint
+            if (!chiefComplaint) {
+                presentIllnessErrorAlert.textContent = '請先輸入主訴';
+                presentIllnessErrorAlert.classList.remove('d-none');
+                setTimeout(() => {
+                    presentIllnessErrorAlert.classList.add('d-none');
+                }, 3000);
+                return;
+            }
+            
+            // Show loading state
+            generatingPresentIllnessAlert.classList.remove('d-none');
+            presentIllnessErrorAlert.classList.add('d-none');
+            generatePresentIllnessBtn.disabled = true;
+            
+            // Collect any existing details from the textarea
+            const presentIllnessDetails = presentIllnessTextarea.value;
+            
+            // Prepare data to send
+            const formData = {
+                chief_complaint: chiefComplaint,
+                patient_age: patientAge,
+                patient_gender: patientGender,
+                accompanied_symptoms: accompaniedSymptoms,
+                present_illness_details: presentIllnessDetails
+            };
+            
+            // Send the request to generate present illness
+            fetch('/medical/generate-present-illness', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading state
+                generatingPresentIllnessAlert.classList.add('d-none');
+                generatePresentIllnessBtn.disabled = false;
+                
+                if (data.success) {
+                    // Update the textarea with the generated content
+                    presentIllnessTextarea.value = data.result.present_illness;
+                } else {
+                    // Show error message
+                    presentIllnessErrorAlert.textContent = data.message || '生成現病史時發生錯誤';
+                    presentIllnessErrorAlert.classList.remove('d-none');
+                }
+            })
+            .catch(error => {
+                // Hide loading state
+                generatingPresentIllnessAlert.classList.add('d-none');
+                generatePresentIllnessBtn.disabled = false;
+                
+                // Show error message
+                presentIllnessErrorAlert.textContent = '請求發生錯誤: ' + error.message;
+                presentIllnessErrorAlert.classList.remove('d-none');
+            });
+        });
+    }
+
     // Handle form submission
     const caseGeneratorForm = document.getElementById('caseGeneratorForm');
     const generateBtn = document.getElementById('generateBtn');
