@@ -113,9 +113,9 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="chiefComplaint" class="form-label">主訴</label>
+                            <label for="chief_complaint" class="form-label">主訴</label>
                             <div class="input-group mb-2">
-                                <input type="text" class="form-control" id="chiefComplaint" name="chiefComplaint" placeholder="輸入患者主訴...">
+                                <input type="text" class="form-control" id="chief_complaint" name="chief_complaint" placeholder="輸入患者主訴...">
                                 <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">常見主訴</button>
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item" href="#" data-complaint="發燒三天">發燒三天</a></li>
@@ -151,9 +151,9 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="presentIllness" class="form-label">現病史 (Present Illness)</label>
+                            <label for="history_present_illness" class="form-label">現病史 (Present Illness)</label>
                             <div class="d-flex mb-2">
-                                <textarea class="form-control" id="presentIllness" name="presentIllness" rows="3" placeholder="輸入患者現病史..."></textarea>
+                                <textarea class="form-control" id="history_present_illness" name="history_present_illness" rows="3" placeholder="輸入患者現病史..."></textarea>
                                 <button type="button" class="btn btn-outline-success ms-2" id="generatePresentIllnessBtn" style="white-space: nowrap;">
                                     <i class="fas fa-magic me-1"></i> 自動生成
                                 </button>
@@ -180,17 +180,17 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="accompaniedSymptoms" class="form-label">伴隨症狀與體格檢查（PE）</label>
-                            <textarea class="form-control mb-2" id="accompaniedSymptoms" name="accompaniedSymptoms" rows="3" placeholder="輸入伴隨症狀和重要體格檢查發現..."></textarea>
+                            <label for="physical_examination" class="form-label">伴隨症狀與體格檢查（PE）</label>
+                            <textarea class="form-control mb-2" id="physical_examination" name="physical_examination" rows="3" placeholder="輸入伴隨症狀和重要體格檢查發現..."></textarea>
                             <!-- 伴隨症狀與PE按鈕 -->
                             <div class="d-flex flex-wrap gap-1 mt-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="發燒 (38.5°C)" data-target="accompaniedSymptoms">發燒</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="胸痛 (壓迫感)" data-target="accompaniedSymptoms">胸痛</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="呼吸急促" data-target="accompaniedSymptoms">呼吸急促</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="盜汗" data-target="accompaniedSymptoms">盜汗</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="肺部濕囉音" data-target="accompaniedSymptoms">肺部濕囉音</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="腹部壓痛" data-target="accompaniedSymptoms">腹部壓痛</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="頸部僵硬" data-target="accompaniedSymptoms">頸部僵硬</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="發燒 (38.5°C)" data-target="physical_examination">發燒</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="胸痛 (壓迫感)" data-target="physical_examination">胸痛</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="呼吸急促" data-target="physical_examination">呼吸急促</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="盜汗" data-target="physical_examination">盜汗</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="肺部濕囉音" data-target="physical_examination">肺部濕囉音</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="腹部壓痛" data-target="physical_examination">腹部壓痛</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary symptom-pe-btn" data-symptom-pe="頸部僵硬" data-target="physical_examination">頸部僵硬</button>
                             </div>
                         </div>
                         
