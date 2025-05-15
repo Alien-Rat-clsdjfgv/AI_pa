@@ -14,63 +14,12 @@ def index():
     # Redirect to original index
     return redirect(url_for('medical_home'))
 
-@app.route('/api/connect', methods=['POST'])
-def connect_api():
-    """API endpoint to test API key connection"""
-    from openai_client import validate_api_key, get_available_models
-    
-    data = request.get_json()
-    api_key = data.get('api_key', '')
-    use_env_key = data.get('use_env_key', False)
-    
-    # If no API key provided but use_env_key is true, try to get from environment
-    if not api_key and use_env_key:
-        api_key = get_api_key()
-        if api_key:
-            logging.info("Using API key from environment variables")
-    
-    if not api_key:
-        return jsonify({'success': False, 'message': 'No API key available'})
-    
-    # Test the API key
-    success, message = validate_api_key(api_key)
-    
-    if success:
-        session['api_key'] = api_key
-        try:
-            models = get_available_models(api_key)
-            return jsonify({
-                'success': True, 
-                'message': 'API connection successful',
-                'models': models
-            })
-        except Exception as e:
-            logging.error(f"Error fetching models: {str(e)}")
-            return jsonify({
-                'success': True,
-                'message': f'API connected but error loading models: {str(e)}',
-                'models': []
-            })
-    else:
-        return jsonify({'success': False, 'message': message})
-
-@app.route('/api/disconnect', methods=['POST'])
-def disconnect_api():
-    """Remove API key from session"""
-    if 'api_key' in session:
-        session.pop('api_key')
-    return jsonify({'success': True, 'message': 'API key removed from session'})
-
 @app.route('/medical', methods=['GET'])
 def medical_home():
     """Medical case generator home page"""
     # Check for API key connection
     api_key = get_api_key()
-    api_connected = False
-    if api_key:
-        # Try to validate the API key
-        from openai_client import validate_api_key
-        api_connected, _ = validate_api_key(api_key)
+    api_connected = api_key is not None
     
     # Get medical specialties for dropdown
     specialties = MedicalSpecialty.query.order_by(MedicalSpecialty.name).all()
@@ -216,49 +165,6 @@ def view_case(id):
     """View a specific medical case"""
     case = MedicalCase.query.get_or_404(id)
     return render_template('medical/view_case.html', case=case)
-
-@app.route('/medical/case/<int:id>/questionnaire', methods=['GET'])
-def case_questionnaire(id):
-    """Generate and view questionnaire for a medical case"""
-    from services.questionnaire_generator import get_questionnaire_items
-    
-    case = MedicalCase.query.get_or_404(id)
-    
-    try:
-        questionnaire = get_questionnaire_items(id)
-        return render_template(
-            'medical/recommended_questions.html',
-            case=case,
-            recommended_questions=questionnaire['questions'],
-            recommended_exams=questionnaire['exams'],
-            questionnaire_flow=questionnaire['questionnaire_flow']
-        )
-    except Exception as e:
-        flash(f'Error generating questionnaire: {str(e)}', 'danger')
-        return redirect(url_for('view_case', id=id))
-
-@app.route('/medical/save-questionnaire', methods=['POST'])
-def save_questionnaire():
-    """Save selected questionnaire items"""
-    from services.questionnaire_generator import save_selected_items
-    
-    data = request.get_json()
-    case_id = data.get('case_id')
-    questions = data.get('questions', [])
-    exams = data.get('exams', [])
-    
-    if not case_id:
-        return jsonify({'success': False, 'message': 'Case ID is required'})
-    
-    try:
-        success = save_selected_items(case_id, questions, exams)
-        if success:
-            return jsonify({'success': True, 'message': 'Questionnaire saved successfully'})
-        else:
-            return jsonify({'success': False, 'message': 'Failed to save questionnaire'})
-    except Exception as e:
-        logging.error(f"Error saving questionnaire: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/medical/case/<int:id>/delete', methods=['POST'])
 def delete_case(id):
