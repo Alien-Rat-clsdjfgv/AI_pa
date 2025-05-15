@@ -838,31 +838,179 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         ];
         
-        // 特殊處理問診問題 - 如果包含問號，可能是醫生在提問
-        if (text.includes('?') || text.includes('？')) {
-            console.log('檢測到可能的問診內容 (包含問號)');
-            // 這裡可以不做特殊處理，或者將其歸入現病史
+        // 檢測對話模式並處理醫生與病人的對話
+        const doctorPatterns = [
+            /您好/i, /請問/i, /有什麼不舒服/i, /哪裡不舒服/i, /什麼時候開始/i, 
+            /多久了/i, /需要做/i, /建議您/i, /您需要/i, /您應該/i, /醫生/i,
+            /告訴我/i, /疼痛程度/i, /吃過藥/i, /做過檢查/i, /之前有過/i,
+            /家族史/i, /過敏史/i, /用藥史/i, /既往史/i
+        ];
+        
+        const patientPatterns = [
+            /我感覺/i, /我覺得/i, /我有/i, /不舒服/i, /痛/i, /疼/i, /不適/i, 
+            /難受/i, /頭暈/i, /噁心/i, /嘔吐/i, /發燒/i, /咳嗽/i, /腹瀉/i, 
+            /我是/i, /大概/i, /可能/i, /沒有/i, /有一點/i, /患者/i, /病人/i
+        ];
+        
+        // 檢測是否是醫生的提問
+        let isDoctorSpeaking = false;
+        for (const pattern of doctorPatterns) {
+            if (pattern.test(text)) {
+                isDoctorSpeaking = true;
+                break;
+            }
+        }
+        
+        // 檢測是否是病人的回答
+        let isPatientSpeaking = false;
+        for (const pattern of patientPatterns) {
+            if (pattern.test(text)) {
+                isPatientSpeaking = true;
+                break;
+            }
+        }
+        
+        console.log(`對話分析: 醫生說話? ${isDoctorSpeaking}, 病人說話? ${isPatientSpeaking}`);
+        
+        // 如果是醫生在提問
+        if ((isDoctorSpeaking && !isPatientSpeaking) || text.includes('?') || text.includes('？')) {
+            console.log('檢測到醫生提問');
+            
+            if (text.includes('頭痛') || text.includes('頭暈') || text.includes('不舒服') || 
+                text.includes('哪裡') || text.includes('怎麼了')) {
+                // 如果醫生在詢問主訴
+                console.log('醫生詢問主訴');
+                // 不記錄醫生的提問，等待病人回答
+                return;
+            }
+            
+            if (text.includes('多久') || text.includes('什麼時候') || text.includes('開始') || 
+                text.includes('之前') || text.includes('以前')) {
+                // 如果醫生在詢問現病史
+                console.log('醫生詢問現病史');
+                // 不記錄醫生的提問，等待病人回答
+                return;
+            }
+            
+            if (text.includes('藥物') || text.includes('用藥') || text.includes('吃什麼藥') || 
+                text.includes('服用') || text.includes('藥')) {
+                // 如果醫生在詢問用藥史
+                console.log('醫生詢問用藥史');
+                // 不記錄醫生的提問，等待病人回答
+                return;
+            }
+            
+            // 其他醫生提問
             const historyTextarea = findTextareaById(textareas, 'presentIllness');
             if (historyTextarea) {
-                console.log('將問診內容添加到現病史');
-                appendTextToTextarea(historyTextarea, `問診: ${text}\n`);
+                console.log('將醫生提問添加到現病史');
+                appendTextToTextarea(historyTextarea, `醫生提問: ${text}\n`);
                 flashTextarea(historyTextarea);
                 return;
             }
         }
         
-        // 主動檢測是否是症狀或常見病症
-        const chiefComplaintField = fieldInfo.find(f => f.name === '主訴');
-        if (chiefComplaintField && chiefComplaintField.commonSymptoms) {
-            for (let symptom of chiefComplaintField.commonSymptoms) {
-                if (lowerText.includes(symptom.toLowerCase())) {
-                    console.log(`檢測到常見症狀: ${symptom}`);
-                    const textarea = findTextareaById(textareas, chiefComplaintField.camelCaseId);
-                    if (textarea) {
-                        console.log(`將包含症狀 "${symptom}" 的文本添加到主訴`);
-                        appendTextToTextarea(textarea, text + '\n');
-                        flashTextarea(textarea);
-                        return;
+        // 處理病人的回答
+        if (isPatientSpeaking && !isDoctorSpeaking) {
+            console.log('檢測到病人回答');
+            
+            // ----- 症狀或主訴檢測 -----
+            const chiefComplaintField = fieldInfo.find(f => f.name === '主訴');
+            // 檢查是否包含常見症狀
+            if (chiefComplaintField && chiefComplaintField.commonSymptoms) {
+                for (let symptom of chiefComplaintField.commonSymptoms) {
+                    if (lowerText.includes(symptom.toLowerCase())) {
+                        console.log(`檢測到常見症狀: ${symptom}`);
+                        const textarea = findTextareaById(textareas, chiefComplaintField.camelCaseId);
+                        if (textarea) {
+                            console.log(`將病人描述的症狀 "${symptom}" 添加到主訴`);
+                            const formattedText = `病人: ${text}\n`;
+                            appendTextToTextarea(textarea, formattedText);
+                            flashTextarea(textarea);
+                            return;
+                        }
+                    }
+                }
+            }
+            
+            // ----- 現病史檢測 -----
+            // 如果提到時間相關的詞，可能是現病史
+            const timePatterns = [
+                /(\d+)天/i, /(\d+)週/i, /(\d+)個月/i, /(\d+)年/i, 
+                /昨天/i, /前天/i, /上週/i, /上個月/i, /早上/i, /中午/i, /下午/i,
+                /開始/i, /最近/i, /幾天/i, /以來/i
+            ];
+            
+            let containsTimeReference = false;
+            for (const pattern of timePatterns) {
+                if (pattern.test(text)) {
+                    containsTimeReference = true;
+                    break;
+                }
+            }
+            
+            if (containsTimeReference) {
+                console.log('病人回答包含時間參考，可能是現病史');
+                const historyTextarea = findTextareaById(textareas, 'presentIllness');
+                if (historyTextarea) {
+                    const formattedText = `病人: ${text} (時間相關)\n`;
+                    appendTextToTextarea(historyTextarea, formattedText);
+                    flashTextarea(historyTextarea);
+                    return;
+                }
+            }
+            
+            // ----- 用藥史檢測 -----
+            if (lowerText.includes('藥') || lowerText.includes('服用') || 
+                lowerText.includes('吃') && (lowerText.includes('藥') || lowerText.includes('藥物'))) {
+                console.log('病人回答提到藥物，可能是用藥史');
+                const medicationsTextarea = findTextareaById(textareas, 'medications');
+                if (medicationsTextarea) {
+                    const formattedText = `病人: ${text}\n`;
+                    appendTextToTextarea(medicationsTextarea, formattedText);
+                    flashTextarea(medicationsTextarea);
+                    return;
+                }
+            }
+            
+            // ----- 過敏史檢測 -----
+            if (lowerText.includes('過敏') || lowerText.includes('不適') && 
+                (lowerText.includes('藥') || lowerText.includes('食物'))) {
+                console.log('病人回答提到過敏，可能是過敏史');
+                const allergiesTextarea = findTextareaById(textareas, 'allergies');
+                if (allergiesTextarea) {
+                    const formattedText = `病人: ${text}\n`;
+                    appendTextToTextarea(allergiesTextarea, formattedText);
+                    flashTextarea(allergiesTextarea);
+                    return;
+                }
+            }
+            
+            // 沒有明確分類的病人回答，嘗試添加到現病史
+            console.log('未明確分類的病人回答，添加到現病史');
+            const historyTextarea = findTextareaById(textareas, 'presentIllness');
+            if (historyTextarea) {
+                const formattedText = `病人: ${text}\n`;
+                appendTextToTextarea(historyTextarea, formattedText);
+                flashTextarea(historyTextarea);
+                return;
+            }
+        }
+        
+        // 預設症狀檢測 (非對話模式或對話模式下無法判斷說話者的情況)
+        if (!isDoctorSpeaking && !isPatientSpeaking) {
+            const chiefComplaintField = fieldInfo.find(f => f.name === '主訴');
+            if (chiefComplaintField && chiefComplaintField.commonSymptoms) {
+                for (let symptom of chiefComplaintField.commonSymptoms) {
+                    if (lowerText.includes(symptom.toLowerCase())) {
+                        console.log(`檢測到常見症狀 (未識別說話者): ${symptom}`);
+                        const textarea = findTextareaById(textareas, chiefComplaintField.camelCaseId);
+                        if (textarea) {
+                            console.log(`將包含症狀 "${symptom}" 的文本添加到主訴`);
+                            appendTextToTextarea(textarea, text + '\n');
+                            flashTextarea(textarea);
+                            return;
+                        }
                     }
                 }
             }
