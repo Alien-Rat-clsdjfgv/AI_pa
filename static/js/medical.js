@@ -3,7 +3,11 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[data-complaint]').forEach(item => {
         item.addEventListener('click', function(e) {
             e.preventDefault();
-            document.getElementById('chiefComplaint').value = this.getAttribute('data-complaint');
+            const complaint = this.getAttribute('data-complaint');
+            const chiefComplaintField = document.getElementById('chief_complaint');
+            if (chiefComplaintField) {
+                chiefComplaintField.value = complaint;
+            }
         });
     });
 
@@ -38,7 +42,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.common-complaint-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const complaint = this.getAttribute('data-complaint');
-            document.getElementById('chiefComplaint').value = complaint;
+            const targetId = this.getAttribute('data-target') || 'chief_complaint';
+            const targetField = document.getElementById(targetId);
+            
+            if (targetField) {
+                targetField.value = complaint;
+            } else {
+                console.error(`無法找到目標欄位: ${targetId}`);
+            }
         });
     });
     
