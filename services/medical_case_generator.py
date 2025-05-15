@@ -19,6 +19,15 @@ def generate_medical_case(params):
             - include_sections (list): Which sections to include in the case
             - model (str): AI model to use
             - system_message (str, optional): System message for the AI
+            - template_id (int, optional): ID of the template to use
+            - lab_scale (str, optional): Scale of lab tests to include (basic, comprehensive)
+            - imaging_type (str, optional): Type of imaging to include (none, xray, ct, mri, ultrasound)
+            - accompanied_symptoms (str, optional): Accompanying symptoms
+            - medical_history (str, optional): Patient's medical history
+            - medications (str, optional): Current medications
+            - allergies (str, optional): Known allergies
+            - family_history (str, optional): Family medical history
+            - social_history (str, optional): Social and lifestyle factors
             
     Returns:
         dict: Generated medical case data and metadata
@@ -53,6 +62,17 @@ lab values, and findings. All cases should be fictional but realistic and medica
     gender = params.get('patient_gender', 'not specified')
     complexity = params.get('complexity', 'moderate')
     
+    # Get additional detailed parameters
+    lab_scale = params.get('lab_scale', 'basic')
+    imaging_type = params.get('imaging_type', 'none')
+    accompanied_symptoms = params.get('accompanied_symptoms', '')
+    medical_history = params.get('medical_history', '')
+    medications = params.get('medications', '')
+    allergies = params.get('allergies', '')
+    family_history = params.get('family_history', '')
+    social_history = params.get('social_history', '')
+    
+    # Building a more detailed prompt with the additional information
     prompt = f"""Create a realistic and detailed medical case with the following specifications:
 
 Specialty: {specialty}
@@ -60,6 +80,31 @@ Chief Complaint: {complaint}
 Patient Age: {age}
 Patient Gender: {gender}
 Complexity Level: {complexity}
+"""
+
+    # Add additional parameters to the prompt if provided
+    if accompanied_symptoms:
+        prompt += f"Accompanied Symptoms: {accompanied_symptoms}\n"
+    
+    if medical_history:
+        prompt += f"Past Medical History: {medical_history}\n"
+        
+    if medications:
+        prompt += f"Current Medications: {medications}\n"
+        
+    if allergies:
+        prompt += f"Allergies: {allergies}\n"
+        
+    if family_history:
+        prompt += f"Family History: {family_history}\n"
+        
+    if social_history:
+        prompt += f"Social History: {social_history}\n"
+    
+    # Laboratory and imaging guidance
+    prompt += f"""
+Laboratory Tests: Include {lab_scale} laboratory tests appropriate for this specialty and complaint.
+Imaging: Include {imaging_type} imaging results if appropriate for this case.
 
 Please include the following sections, formatted with section headers in Markdown:
 """
@@ -72,7 +117,17 @@ Please include the following sections, formatted with section headers in Markdow
 Ensure all medical information is realistic and accurate. Use proper medical terminology and realistic values for vitals and lab results.
 Format your response as a medical case report with clear section headings using Markdown (## Section Title).
 
-Begin with a brief title for the case."""
+For the History of Present Illness section, include:
+1. Duration and onset of symptoms
+2. Characteristics and severity
+3. Aggravating and alleviating factors
+4. Relevant associated symptoms
+5. Impact on daily activities
+6. Prior treatments or evaluations
+
+For laboratory results, provide realistic reference ranges in parentheses.
+
+Begin with a brief title for the case that captures the key aspects."""
 
     # Set up the messages
     messages = [
