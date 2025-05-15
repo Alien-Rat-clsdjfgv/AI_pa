@@ -442,6 +442,9 @@ document.addEventListener('DOMContentLoaded', function() {
             isRecording = true;
             recognition.start();
             
+            // 設置持久連接標誌
+            window.persistentVoiceRecording = true;
+            
             // 添加計時器以顯示錄音已持續時間
             startRecordingTimer();
         } catch (e) {
@@ -545,7 +548,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 停止語音識別
                 isRecording = false;
-                recognition.stop();
+                
+                // 清除持久錄音標記 - 確保完全停止
+                window.persistentVoiceRecording = false;
+                
+                // 徹底停止語音識別
+                try {
+                    recognition.abort();
+                } catch (e) {
+                    console.error('停止語音識別時發生錯誤:', e);
+                    try {
+                        recognition.stop();
+                    } catch (e2) {
+                        console.error('嘗試備用方法停止識別時發生錯誤:', e2);
+                    }
+                }
                 
                 // 2秒後隱藏狀態
                 setTimeout(function() {
@@ -951,10 +968,61 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleEnd() {
         console.log('語音識別自動結束');
         
-        // 如果用戶沒有主動停止，嘗試自動重啟
-        if (isRecording) {
-            console.log('嘗試自動重啟語音識別');
-            stopRecording(true); // 使用我們的自動重啟模式
+        // 如果設置了持久錄音標誌並且用戶沒有主動停止，立即重新啟動識別
+        if (window.persistentVoiceRecording && isRecording) {
+            console.log('持久錄音模式：立即重新啟動錄音');
+            
+            // 更新視覺指示
+            const pulseIndicator = document.getElementById('voice-pulse-indicator');
+            if (pulseIndicator) {
+                pulseIndicator.style.backgroundColor = 'orange';
+                setTimeout(() => {
+                    if (pulseIndicator) pulseIndicator.style.backgroundColor = 'red';
+                }, 300);
+            }
+            
+            try {
+                // 立即重新創建語音識別實例
+                if (recognition) {
+                    try {
+                        recognition.abort();
+                    } catch (error) {
+                        // 忽略錯誤
+                    }
+                    
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    recognition = new SpeechRecognition();
+                    recognition.continuous = true;
+                    recognition.interimResults = true;
+                    recognition.maxAlternatives = 5;
+                    recognition.lang = languageSelect ? languageSelect.value : 'zh-TW';
+                    
+                    // 重新設置事件處理
+                    recognition.onresult = handleResult;
+                    recognition.onerror = handleError;
+                    recognition.onend = handleEnd;
+                    
+                    // 立即重啟
+                    setTimeout(() => {
+                        try {
+                            recognition.start();
+                            voiceStatus.textContent = '繼續接聽中...';
+                        } catch (e) {
+                            console.error('立即重啟失敗，嘗試延遲重啟', e);
+                            // 如果立即重啟失敗，使用延遲重啟
+                            stopRecording(true);
+                        }
+                    }, 10);
+                }
+            } catch (e) {
+                console.error('持久錄音重啟失敗:', e);
+                // 如果失敗，嘗試傳統方式重啟
+                stopRecording(true);
+            }
+        } else if (isRecording) {
+            // 傳統重啟模式（非持久錄音）
+            console.log('嘗試標準重啟語音識別');
+            stopRecording(true);
         }
     }
     
