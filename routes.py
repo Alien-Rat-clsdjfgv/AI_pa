@@ -113,52 +113,51 @@ def run_test():
     
     # Create a test case from the data
     try:
-        # Create a test case if requested
+        # Prepare test case parameters
+        test_params = {
+            'model': data.get('model', 'gpt-4o'),
+            'prompt': data.get('prompt', ''),
+            'system_message': data.get('system_message', ''),
+            'temperature': float(data.get('temperature', 0.7)),
+            'max_tokens': int(data.get('max_tokens', 1000)),
+            'top_p': float(data.get('top_p', 1.0)),
+            'frequency_penalty': float(data.get('frequency_penalty', 0.0)),
+            'presence_penalty': float(data.get('presence_penalty', 0.0)),
+            'json_response': bool(data.get('json_response', False))
+        }
+        
+        # Create and save a test case if requested
+        test_run = None
         if save_test_case:
+            # Create test case
             test_case = TestCase(
                 name=data.get('name', 'Unnamed Test'),
-                model=data.get('model', 'gpt-4o'),
-                prompt=data.get('prompt', ''),
-                system_message=data.get('system_message', ''),
-                temperature=float(data.get('temperature', 0.7)),
-                max_tokens=int(data.get('max_tokens', 1000)),
-                top_p=float(data.get('top_p', 1.0)),
-                frequency_penalty=float(data.get('frequency_penalty', 0.0)),
-                presence_penalty=float(data.get('presence_penalty', 0.0)),
-                json_response=bool(data.get('json_response', False))
+                **test_params
             )
             db.session.add(test_case)
             db.session.commit()
-        else:
-            # Create a temporary test case that isn't saved
-            test_case = TestCase(
-                name="Temporary Test",
-                model=data.get('model', 'gpt-4o'),
-                prompt=data.get('prompt', ''),
-                system_message=data.get('system_message', ''),
-                temperature=float(data.get('temperature', 0.7)),
-                max_tokens=int(data.get('max_tokens', 1000)),
-                top_p=float(data.get('top_p', 1.0)),
-                frequency_penalty=float(data.get('frequency_penalty', 0.0)),
-                presence_penalty=float(data.get('presence_penalty', 0.0)),
-                json_response=bool(data.get('json_response', False))
-            )
             
-        # Create a test run record
-        test_run = TestRun(
-            test_case_id=test_case.id if save_test_case else None,
-            start_time=datetime.utcnow(),
-            status="running",
-            api_key_used=True
-        )
-        
-        if save_test_case:
+            # Create a test run record
+            test_run = TestRun(
+                test_case_id=test_case.id,
+                start_time=datetime.utcnow(),
+                status="running",
+                api_key_used=True
+            )
             db.session.add(test_run)
             db.session.commit()
+        else:
+            # For temporary test, just prepare the params directly
+            test_case = test_params
         
         # Run the test
         start_time = time.time()
-        result = run_prompt_test(api_key, test_case.to_dict())
+        # For the API call we need the parameters in correct format
+        params_for_api = test_params
+        if save_test_case:
+            params_for_api = test_case.to_dict()
+        
+        result = run_prompt_test(api_key, params_for_api)
         end_time = time.time()
         
         # Update the test run with results
@@ -180,7 +179,7 @@ def run_test():
             completion_tokens = 0
             total_tokens = 0
         
-        if save_test_case:
+        if save_test_case and test_run:
             test_run.end_time = datetime.utcnow()
             test_run.duration_ms = duration_ms
             test_run.status = status
@@ -191,10 +190,9 @@ def run_test():
             test_run.total_tokens = total_tokens
             db.session.commit()
             
-        return jsonify({
+        # Prepare response JSON
+        response_data = {
             'success': True,
-            'test_case_id': test_case.id if save_test_case else None,
-            'test_run_id': test_run.id if save_test_case else None,
             'status': status,
             'duration_ms': duration_ms,
             'response': json.loads(response) if response else None,
@@ -204,7 +202,15 @@ def run_test():
                 'completion_tokens': completion_tokens,
                 'total_tokens': total_tokens
             }
-        })
+        }
+        
+        # Add IDs only for saved test cases
+        if save_test_case:
+            response_data['test_case_id'] = test_case.id
+            if test_run:
+                response_data['test_run_id'] = test_run.id
+        
+        return jsonify(response_data)
         
     except Exception as e:
         logging.error(f"Error running test: {str(e)}")
@@ -230,65 +236,73 @@ def run_existing_test(id):
     if not api_key:
         return jsonify({'success': False, 'message': 'API key is required'})
     
-    test_case = TestCase.query.get_or_404(id)
-    
-    # Create a test run record
-    test_run = TestRun(
-        test_case_id=test_case.id,
-        start_time=datetime.utcnow(),
-        status="running",
-        api_key_used=True
-    )
-    db.session.add(test_run)
-    db.session.commit()
-    
-    # Run the test
-    start_time = time.time()
-    result = run_prompt_test(api_key, test_case.to_dict())
-    end_time = time.time()
-    
-    # Update the test run with results
-    duration_ms = int((end_time - start_time) * 1000)
-    if result.get('success'):
-        response_data = result.get('data', {})
-        status = "completed"
-        error_message = None
-        response = json.dumps(response_data.get('response', {}))
-        usage = response_data.get('usage', {})
-        prompt_tokens = usage.get('prompt_tokens', 0)
-        completion_tokens = usage.get('completion_tokens', 0)
-        total_tokens = usage.get('total_tokens', 0)
-    else:
-        status = "failed"
-        error_message = result.get('message', 'Unknown error')
-        response = None
-        prompt_tokens = 0
-        completion_tokens = 0
-        total_tokens = 0
-    
-    test_run.end_time = datetime.utcnow()
-    test_run.duration_ms = duration_ms
-    test_run.status = status
-    test_run.response = response
-    test_run.error_message = error_message
-    test_run.prompt_tokens = prompt_tokens
-    test_run.completion_tokens = completion_tokens
-    test_run.total_tokens = total_tokens
-    db.session.commit()
-    
-    return jsonify({
-        'success': True,
-        'test_run_id': test_run.id,
-        'status': status,
-        'duration_ms': duration_ms,
-        'response': json.loads(response) if response else None,
-        'error_message': error_message,
-        'usage': {
-            'prompt_tokens': prompt_tokens,
-            'completion_tokens': completion_tokens,
-            'total_tokens': total_tokens
+    try:
+        test_case = TestCase.query.get_or_404(id)
+        
+        # Create a test run record
+        test_run = TestRun(
+            test_case_id=test_case.id,
+            start_time=datetime.utcnow(),
+            status="running",
+            api_key_used=True
+        )
+        db.session.add(test_run)
+        db.session.commit()
+        
+        # Run the test
+        start_time = time.time()
+        result = run_prompt_test(api_key, test_case.to_dict())
+        end_time = time.time()
+        
+        # Update the test run with results
+        duration_ms = int((end_time - start_time) * 1000)
+        if result.get('success'):
+            response_data = result.get('data', {})
+            status = "completed"
+            error_message = None
+            response = json.dumps(response_data.get('response', {}))
+            usage = response_data.get('usage', {})
+            prompt_tokens = usage.get('prompt_tokens', 0)
+            completion_tokens = usage.get('completion_tokens', 0)
+            total_tokens = usage.get('total_tokens', 0)
+        else:
+            status = "failed"
+            error_message = result.get('message', 'Unknown error')
+            response = None
+            prompt_tokens = 0
+            completion_tokens = 0
+            total_tokens = 0
+        
+        test_run.end_time = datetime.utcnow()
+        test_run.duration_ms = duration_ms
+        test_run.status = status
+        test_run.response = response
+        test_run.error_message = error_message
+        test_run.prompt_tokens = prompt_tokens
+        test_run.completion_tokens = completion_tokens
+        test_run.total_tokens = total_tokens
+        db.session.commit()
+        
+        # Prepare response data
+        response_data = {
+            'success': True,
+            'test_run_id': test_run.id,
+            'status': status,
+            'duration_ms': duration_ms,
+            'response': json.loads(response) if response else None,
+            'error_message': error_message,
+            'usage': {
+                'prompt_tokens': prompt_tokens,
+                'completion_tokens': completion_tokens,
+                'total_tokens': total_tokens
+            }
         }
-    })
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        logging.error(f"Error running existing test: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)})
 
 @app.route('/api/test-case/<int:id>', methods=['DELETE'])
 def delete_test_case(id):
