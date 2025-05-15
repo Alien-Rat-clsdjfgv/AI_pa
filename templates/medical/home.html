@@ -1,21 +1,7 @@
 {% extends 'layout.html' %}
 
 {% block content %}
-<!-- 語音輸入按鈕 - 固定在右下角 -->
-<div id="voice-input-button" class="position-fixed bottom-0 end-0 mb-5 me-3 d-flex flex-column" style="z-index: 1050;">
-    <div id="voice-status" class="d-none mb-2 p-2 rounded text-center text-white bg-dark">準備中...</div>
-    <div id="voice-language-container" class="mb-2 bg-dark p-2 rounded shadow-sm d-none">
-        <select id="voice-language" class="form-select form-select-sm">
-            <option value="zh-TW">中文 (繁體)</option>
-            <option value="zh-CN">中文 (簡體)</option>
-            <option value="en-US">英文</option>
-            <option value="ja-JP">日文</option>
-        </select>
-    </div>
-    <button id="voice-button" class="btn btn-primary rounded-circle shadow-lg p-3" style="width: 60px; height: 60px;" title="點擊開始語音輸入">
-        <i class="fas fa-microphone"></i>
-    </button>
-</div>
+<!-- 語音輸入按鈕自動由 voice-system.js 創建 -->
 <div class="container py-4">
     <div class="row mb-4">
         <div class="col-12">
@@ -1007,7 +993,33 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- 語音輸入功能 -->
-<script src="{{ url_for('static', filename='js/smart-voice-input.js') }}"></script>
+<!-- 新的語音輸入系統 -->
+<script src="{{ url_for('static', filename='js/voice-system.js') }}"></script>
+
+<!-- 與按鈕系統的集成 -->
+<script>
+// 監聽專科變更，通知語音系統
+document.addEventListener('DOMContentLoaded', function() {
+    // 當專科變更時通知語音系統
+    const specialtySelect = document.getElementById('specialty');
+    if (specialtySelect) {
+        specialtySelect.addEventListener('change', function() {
+            // 如果語音系統已加載，通知按鈕更新
+            if (window.voiceSystem) {
+                console.log('專科變更: ', this.value);
+                // 發送按鈕更新事件
+                document.dispatchEvent(new CustomEvent('specialty-buttons-updated'));
+            }
+        });
+    }
+    
+    // 當動態按鈕被添加或更新時
+    document.addEventListener('specialty-buttons-updated', function() {
+        if (window.notifyButtonsUpdated) {
+            window.notifyButtonsUpdated();
+        }
+    });
+});
+</script>
 
 {% endblock %}

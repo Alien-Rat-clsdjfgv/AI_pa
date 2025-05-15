@@ -13,14 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // 如果語音輸入按鈕不存在，創建一個臨時的
-    if (!document.getElementById('voice-button')) {
-        console.log('添加臨時語音輸入按鈕');
-        const tempVoiceBtn = document.createElement('div');
-        tempVoiceBtn.id = 'temp-voice-button-placeholder';
-        tempVoiceBtn.style.display = 'none';
-        document.body.appendChild(tempVoiceBtn);
-    }
+    // 不再需要臨時語音按鈕，新的voice-system.js會自動創建
 
     // 定義各專科常見症狀和相關項目
     const specialtyRelatedItems = {
@@ -314,11 +307,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // 確保語音輸入功能正常工作
-        // 在更新按鈕後，向全局window發送一個事件，通知語音輸入系統重新檢查按鈕
+        // 在更新按鈕後，發送一個事件，通知新的語音系統
         setTimeout(function() {
-            const event = new CustomEvent('buttonsUpdated');
-            window.dispatchEvent(event);
-            console.log('向語音輸入系統發送按鈕更新通知');
+            console.log('檢測到按鈕更新，重新初始化語音輸入系統...');
+            // 發送按鈕更新事件，新的語音系統會接收此事件
+            document.dispatchEvent(new CustomEvent('specialty-buttons-updated'));
         }, 500);
     }
 
