@@ -623,18 +623,74 @@ class ConversationAnalyzer {
         for (const speech of patientSpeeches) {
             const text = speech.text.toLowerCase();
             
+            // 提取特定症狀
+            let symptomFound = false;
+            
+            // 檢查常見主訴症狀
+            if (text.includes('發燒') || text.includes('咳嗽') || 
+                text.includes('頭痛') || text.includes('喉嚨痛') || 
+                text.includes('呼吸困難')) {
+                
+                // 提取主要症狀
+                let mainSymptoms = [];
+                if (text.includes('發燒')) mainSymptoms.push('發燒');
+                if (text.includes('咳嗽')) mainSymptoms.push('咳嗽');
+                if (text.includes('頭痛')) mainSymptoms.push('頭痛');
+                if (text.includes('喉嚨痛')) mainSymptoms.push('喉嚨痛');
+                if (text.includes('呼吸困難')) mainSymptoms.push('呼吸困難');
+                
+                // 提取時間信息
+                let duration = '';
+                if (text.includes('天')) {
+                    const matches = text.match(/(\d+)\s*天/);
+                    if (matches && matches[1]) {
+                        duration = matches[1] + '天';
+                    }
+                } else if (text.includes('週') || text.includes('星期')) {
+                    const matches = text.match(/(\d+)\s*(週|星期)/);
+                    if (matches && matches[1]) {
+                        duration = matches[1] + matches[2];
+                    }
+                }
+                
+                // 構建清晰的主訴
+                const cleanChiefComplaint = duration ? 
+                    `${mainSymptoms.join('、')}${duration}` : 
+                    `${mainSymptoms.join('、')}`;
+                
+                if (mainSymptoms.length > 0) {
+                    extractedInfo.chiefComplaint.push(cleanChiefComplaint);
+                    symptomFound = true;
+                }
+            }
+            
             // 胃腸道症狀特別處理到伴隨症狀
             if (text.includes('惡心') || text.includes('嘔吐') || 
                 text.includes('腹痛') || text.includes('腹瀉') || 
                 text.includes('便秘') || text.includes('胃痛')) {
-                extractedInfo.accompaniedSymptoms.push(speech.text);
                 
-                // 如果這是第一句話，也可能是主訴
-                if (patientSpeeches.indexOf(speech) === 0) {
-                    extractedInfo.chiefComplaint.push(speech.text);
+                // 提取實際的症狀作為伴隨症狀
+                const symptoms = [];
+                if (text.includes('惡心')) symptoms.push('惡心');
+                if (text.includes('嘔吐')) symptoms.push('嘔吐');
+                if (text.includes('腹痛')) symptoms.push('腹痛');
+                if (text.includes('腹瀉')) symptoms.push('腹瀉');
+                if (text.includes('便秘')) symptoms.push('便秘');
+                if (text.includes('胃痛')) symptoms.push('胃痛');
+                
+                if (symptoms.length > 0) {
+                    extractedInfo.accompaniedSymptoms.push(`伴隨症狀: ${symptoms.join('、')}`);
+                    symptomFound = true;
                 }
-                continue;
+                
+                // 如果這是第一句話且尚未設置主訴，將其作為主訴
+                if (patientSpeeches.indexOf(speech) === 0 && extractedInfo.chiefComplaint.length === 0) {
+                    extractedInfo.chiefComplaint.push(`${symptoms[0]}`);
+                }
             }
+            
+            // 如果已經處理過症狀，跳過下面的通用處理
+            if (symptomFound) continue;
             
             // 檢查每個分類的關鍵詞
             let matched = false;
