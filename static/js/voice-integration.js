@@ -82,6 +82,7 @@ class MedicalVoiceSystem {
                     communityReference: false // 較少提及家庭/群體
                 }
             }
+        };
         
         // 參考對話分析器
         this.analyzer = null;
