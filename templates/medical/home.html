@@ -996,6 +996,9 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- 新的語音輸入系統 -->
 <script src="{{ url_for('static', filename='js/voice-system.js') }}"></script>
 
+<!-- 對話分析器 - 醫患對話處理 -->
+<script src="{{ url_for('static', filename='js/conversation-analyzer.js') }}"></script>
+
 <!-- 與按鈕系統的集成 -->
 <script>
 // 監聽專科變更，通知語音系統
@@ -1019,6 +1022,28 @@ document.addEventListener('DOMContentLoaded', function() {
             window.notifyButtonsUpdated();
         }
     });
+    
+    // 添加CSS樣式用於臨時閃爍效果
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .flash-effect {
+            animation: flash-textarea 1s;
+        }
+        @keyframes flash-textarea {
+            0% { background-color: rgba(255, 193, 7, 0.3); }
+            100% { background-color: transparent; }
+        }
+        
+        .conversation-sidebar {
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+        
+        .conversation-sidebar:hover {
+            opacity: 1;
+        }
+    `;
+    document.head.appendChild(style);
 });
 </script>
 
