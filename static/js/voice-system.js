@@ -417,19 +417,26 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 向對話分析器發送事件
             if (window.conversationAnalyzer) {
+                // 獲取手動設置的說話者類型
+                let manualSpeaker = null;
+                if (typeof window.conversationAnalyzer.getManualSpeaker === 'function') {
+                    manualSpeaker = window.conversationAnalyzer.getManualSpeaker();
+                }
+                
                 // 直接添加到對話分析器
-                window.conversationAnalyzer.addConversation(transcript, true);
+                window.conversationAnalyzer.addConversation(transcript, manualSpeaker, true);
                 
                 // 發送自定義事件 (以便其他組件可以監聽)
                 const recognitionEvent = new CustomEvent('voice-recognition-result', {
                     detail: {
                         text: transcript,
+                        speaker: manualSpeaker,
                         isFinal: true
                     }
                 });
                 document.dispatchEvent(recognitionEvent);
                 
-                console.log('語音內容已發送到對話分析器');
+                console.log('語音內容已發送到對話分析器, 說話者類型:', manualSpeaker || '自動識別');
             }
             
             // 分類處理文本 (保留原有功能作為備用)
