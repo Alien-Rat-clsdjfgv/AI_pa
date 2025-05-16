@@ -257,12 +257,12 @@ class ConversationAnalyzer {
     }
     
     /**
-     * 啟用手動標記說話者的功能
+     * 啟用手動標記說話者的功能 - 使用大按鈕，更容易操作
      */
     enableManualSpeakerToggle() {
         if (document.getElementById('manual-speaker-controls')) return;
         
-        // 添加說話者切換按鈕
+        // 添加說話者切換按鈕 - 使用更大、更明顯的按鈕
         const container = document.createElement('div');
         container.id = 'manual-speaker-controls';
         container.className = 'position-fixed';
@@ -270,44 +270,72 @@ class ConversationAnalyzer {
         container.style.right = '20px';
         container.style.zIndex = '1039';
         container.innerHTML = `
-            <div class="card shadow-sm">
-                <div class="card-header py-1 px-3 bg-light">
-                    <small>選擇說話者</small>
+            <div class="card shadow">
+                <div class="card-header py-2 bg-light d-flex justify-content-between align-items-center">
+                    <small class="fw-bold">當前說話者</small>
+                    <button type="button" class="btn-close btn-sm" id="close-speaker-control"></button>
                 </div>
-                <div class="card-body py-2 px-3">
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="speaker" id="doctor-speaker" value="doctor">
-                        <label class="form-check-label" for="doctor-speaker">
-                            <i class="fas fa-user-md text-primary"></i> 醫生
-                        </label>
+                <div class="card-body p-2">
+                    <div class="d-grid gap-2">
+                        <button type="button" id="doctor-speaker-btn" class="btn btn-outline-primary btn-lg speaker-btn">
+                            <i class="fas fa-user-md me-2"></i> 醫生說話
+                        </button>
+                        <button type="button" id="patient-speaker-btn" class="btn btn-success btn-lg speaker-btn active">
+                            <i class="fas fa-user me-2"></i> 病人說話
+                        </button>
                     </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="speaker" id="patient-speaker" value="patient" checked>
-                        <label class="form-check-label" for="patient-speaker">
-                            <i class="fas fa-user text-success"></i> 病人
-                        </label>
-                    </div>
+                </div>
+                <div class="card-footer py-1 bg-light text-center">
+                    <small>點擊相應按鈕後說話</small>
                 </div>
             </div>
         `;
         
         document.body.appendChild(container);
         
-        // 添加事件處理
-        const doctorRadio = document.getElementById('doctor-speaker');
-        const patientRadio = document.getElementById('patient-speaker');
+        // 關閉控制面板按鈕
+        document.getElementById('close-speaker-control').addEventListener('click', () => {
+            container.classList.add('d-none');
+        });
         
-        if (doctorRadio) {
-            doctorRadio.addEventListener('change', () => {
-                console.log('說話者設置為: 醫生');
-            });
-        }
+        // 醫生按鈕點擊事件
+        const doctorBtn = document.getElementById('doctor-speaker-btn');
+        doctorBtn.addEventListener('click', () => {
+            this.setActiveSpeaker('doctor');
+            doctorBtn.classList.add('active', 'btn-primary');
+            doctorBtn.classList.remove('btn-outline-primary');
+            
+            const patientBtn = document.getElementById('patient-speaker-btn');
+            patientBtn.classList.remove('active', 'btn-success');
+            patientBtn.classList.add('btn-outline-success');
+            
+            console.log('當前說話者設置為: 醫生');
+        });
         
-        if (patientRadio) {
-            patientRadio.addEventListener('change', () => {
-                console.log('說話者設置為: 病人');
-            });
-        }
+        // 病人按鈕點擊事件
+        const patientBtn = document.getElementById('patient-speaker-btn');
+        patientBtn.addEventListener('click', () => {
+            this.setActiveSpeaker('patient');
+            patientBtn.classList.add('active', 'btn-success');
+            patientBtn.classList.remove('btn-outline-success');
+            
+            const doctorBtn = document.getElementById('doctor-speaker-btn');
+            doctorBtn.classList.remove('active', 'btn-primary');
+            doctorBtn.classList.add('btn-outline-primary');
+            
+            console.log('當前說話者設置為: 病人');
+        });
+        
+        // 初始設置為病人 (默認)
+        this.currentSpeaker = 'patient';
+    }
+    
+    /**
+     * 設置當前活動說話者
+     * @param {string} speaker 說話者類型 ('doctor' 或 'patient')
+     */
+    setActiveSpeaker(speaker) {
+        this.currentSpeaker = speaker;
     }
     
     /**
@@ -315,13 +343,13 @@ class ConversationAnalyzer {
      * @returns {string|null} 說話者類型 ('doctor', 'patient') 或 null
      */
     getManualSpeaker() {
-        const doctorRadio = document.getElementById('doctor-speaker');
-        const patientRadio = document.getElementById('patient-speaker');
+        // 優先使用新的currentSpeaker屬性
+        if (this.currentSpeaker) {
+            return this.currentSpeaker;
+        }
         
-        if (doctorRadio && doctorRadio.checked) return 'doctor';
-        if (patientRadio && patientRadio.checked) return 'patient';
-        
-        return null;
+        // 返回默認值
+        return 'patient';
     }
     
     /**
