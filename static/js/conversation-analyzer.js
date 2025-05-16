@@ -1013,6 +1013,19 @@ class ConversationAnalyzer {
     setAnalysisCompleteCallback(callback) {
         this.onAnalysisComplete = callback;
     }
+    
+    /**
+     * 設置文化背景和相關參數
+     * @param {string} culturalContext 文化背景
+     * @param {object} symptomTerms 症狀術語
+     * @param {object} rules 文化規則
+     */
+    setCulturalContext(culturalContext, symptomTerms, rules) {
+        this.culturalContext = culturalContext || 'taiwanese';
+        if (symptomTerms) this.symptomTerms = symptomTerms;
+        if (rules) this.culturalContextRules = rules;
+        console.log(`文化背景已設置為: ${this.culturalContext}`);
+    }
 }
 
 // 初始化對話分析器
