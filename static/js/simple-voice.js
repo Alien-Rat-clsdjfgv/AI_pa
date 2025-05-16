@@ -266,7 +266,20 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (lastResult.isFinal && transcript) {
             console.log('識別結果:', transcript);
+            
+            // 顯示中間結果以提供即時反饋
+            statusDisplay.textContent = `識別: "${transcript.substring(0, 30)}${transcript.length > 30 ? '...' : ''}"`;
+            
+            // 添加到對話記錄
             addConversation(transcript, currentSpeaker);
+            
+            // 提供一些視覺反饋
+            statusDisplay.classList.add('bg-success');
+            setTimeout(() => {
+                statusDisplay.classList.remove('bg-success');
+                statusDisplay.classList.add('bg-danger');
+                statusDisplay.textContent = '正在聆聽...';
+            }, 1000);
         }
     }
     
@@ -417,11 +430,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const symptomKeywords = [
             '頭痛', '頭暈', '噁心', '嘔吐', '胸悶', '胸痛', '腹痛', '腹瀉', '便秘', 
             '咳嗽', '咳痰', '呼吸困難', '喉嚨痛', '發燒', '發熱', '疼痛', '痛', 
-            '不適', '不舒服', '難受'
+            '不適', '不舒服', '難受', '住院'
         ];
         
+        // 主訴通常是病人說的第一句話，所以優先考慮前幾句話
+        const prioritySpeeches = patientSpeeches.slice(0, Math.min(3, patientSpeeches.length));
+        
         // 尋找最可能的主訴
-        for (const speech of patientSpeeches) {
+        for (const speech of prioritySpeeches) {
             // 如果直接包含"主訴"關鍵詞
             if (speech.includes('主訴')) {
                 return speech;
@@ -430,13 +446,27 @@ document.addEventListener('DOMContentLoaded', function() {
             // 檢查是否包含症狀關鍵詞
             for (const keyword of symptomKeywords) {
                 if (speech.includes(keyword)) {
-                    return speech;
+                    // 檢查這個句子是否簡短明了
+                    if (speech.length < 50) {
+                        return speech;
+                    } else {
+                        // 如果句子太長，嘗試提取包含關鍵詞的片段
+                        const keywordIndex = speech.indexOf(keyword);
+                        const start = Math.max(0, keywordIndex - 10);
+                        const end = Math.min(speech.length, keywordIndex + keyword.length + 20);
+                        return speech.substring(start, end);
+                    }
                 }
             }
         }
         
-        // 如果沒有找到明確的主訴，使用第一句病人的描述
-        return patientSpeeches.length > 0 ? patientSpeeches[0] : '';
+        // 如果沒有找到明確的主訴，使用第一句病人的描述的前30個字符
+        if (patientSpeeches.length > 0) {
+            const firstSpeech = patientSpeeches[0];
+            return firstSpeech.length > 30 ? firstSpeech.substring(0, 30) + "..." : firstSpeech;
+        }
+        
+        return '';
     }
     
     // 提取現病史
@@ -698,13 +728,26 @@ document.addEventListener('DOMContentLoaded', function() {
     function applyResults() {
         const textareas = document.querySelectorAll('.category-content');
         
+        // 映射類別ID到表單字段ID
+        const categoryToFieldMapping = {
+            'chiefComplaint': 'chief_complaint',
+            'presentIllness': 'history_present_illness',
+            'pastMedicalHistory': 'past_medical_history',
+            'medications': 'medications',
+            'allergies': 'allergies',
+            'physical_examination': 'physical_examination'
+        };
+        
         textareas.forEach(textarea => {
             const category = textarea.getAttribute('data-category');
             const content = textarea.value;
             
             if (category && content) {
+                // 使用映射獲取正確的表單字段ID
+                const fieldId = categoryToFieldMapping[category] || category;
+                
                 // 尋找對應的表單字段
-                const formField = document.getElementById(category);
+                const formField = document.getElementById(fieldId);
                 if (formField) {
                     // 添加到現有內容
                     if (formField.value) {
@@ -718,6 +761,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     setTimeout(() => {
                         formField.classList.remove('flash');
                     }, 500);
+                    
+                    // 在控制台記錄，以幫助調試
+                    console.log(`將內容添加到 ${fieldId}: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`);
+                } else {
+                    console.warn(`找不到字段: ${fieldId} 對應於類別 ${category}`);
                 }
             }
         });
