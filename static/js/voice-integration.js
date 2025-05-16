@@ -154,11 +154,24 @@ class VoiceIntegration {
             
             console.log('語音識別結束事件觸發');
             
-            // 自動重新啟動語音識別以維持連續記錄
+            // 自動重新啟動語音識別以維持連續記錄 (連續錄音模式)
             if (this.targetField) {
+                console.log('準備自動重新啟動語音識別...');
                 setTimeout(() => {
-                    this.startListening(this.targetField.id);
-                }, 300);
+                    try {
+                        this.recognition.start();
+                        console.log('語音識別自動重新啟動成功');
+                        this.isListening = true;
+                        this.status = 'listening';
+                        this.updateStatusUI();
+                    } catch (e) {
+                        console.error('語音識別自動重新啟動失敗:', e);
+                        // 如果直接啟動失敗，嘗試通過正常流程啟動
+                        setTimeout(() => {
+                            this.startListening(this.targetField.id);
+                        }, 500);
+                    }
+                }, 100);
             }
         };
         

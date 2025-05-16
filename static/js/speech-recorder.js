@@ -209,6 +209,12 @@ class SpeechRecorder {
         // 如果沒有在記錄則跳過
         if (!this.isRecording) return;
         
+        // 檢查是否與上一次記錄的內容相同 (去重)
+        if (text === this.lastRecordedText) {
+            console.log('重複內容，跳過記錄:', text);
+            return;
+        }
+        
         // 獲取當前時間
         const currentTime = new Date();
         const timeStr = this.formatTime(currentTime);
@@ -229,11 +235,16 @@ class SpeechRecorder {
         }
         this.fullText += `[${timeStr}] ${text}`;
         
+        // 保存這次的文本，用於去重
+        this.lastRecordedText = text;
+        
         // 更新文本區域
         this.updateTextArea();
         
         // 更新字數計數器
         this.updateCounter();
+        
+        console.log('成功記錄對話:', text);
     }
     
     /**
