@@ -315,8 +315,9 @@ class MedicalVoiceSystem {
     
     /**
      * 停止語音輸入
+     * @param {boolean} analyze 是否自動分析對話
      */
-    stopVoiceInput() {
+    stopVoiceInput(analyze = false) {
         if (this.isListening) {
             this.recognition.stop();
             
@@ -327,6 +328,23 @@ class MedicalVoiceSystem {
             
             this.currentField = null;
             this.autoRestart = false;
+            
+            // 如果需要自動分析
+            if (analyze && this.analyzer) {
+                // 延遲500毫秒後分析，確保所有語音都被處理
+                setTimeout(() => {
+                    // 自動點擊分析按鈕
+                    const analyzeButton = document.getElementById('analyze-conversation-btn');
+                    if (analyzeButton) {
+                        console.log('自動分析對話');
+                        analyzeButton.click();
+                    } else {
+                        // 直接調用分析方法
+                        console.log('直接調用分析方法');
+                        this.analyzer.analyzeConversation();
+                    }
+                }, 500);
+            }
         }
     }
     
@@ -506,7 +524,8 @@ class MedicalVoiceSystem {
         // 添加點擊事件
         mainButton.addEventListener('click', () => {
             if (this.isListening) {
-                this.stopVoiceInput();
+                // 停止錄音並自動分析對話
+                this.stopVoiceInput(true);
                 mainButton.querySelector('i').className = 'fas fa-microphone fa-lg';
                 mainButton.classList.remove('btn-danger');
                 mainButton.classList.add('btn-primary');
