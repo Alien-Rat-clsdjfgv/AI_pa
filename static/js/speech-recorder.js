@@ -53,7 +53,7 @@ class SpeechRecorder {
         this.container.innerHTML = `
             <div class="card shadow">
                 <div class="card-header py-2 bg-dark d-flex justify-content-between align-items-center">
-                    <small class="fw-bold text-light">完整對話記錄</small>
+                    <small class="fw-bold text-light">完整對話記錄 (含標點符號)</small>
                     <div>
                         <button type="button" class="btn btn-outline-light btn-sm" id="clear-dialog-btn">
                             <i class="fas fa-eraser"></i>
@@ -65,7 +65,7 @@ class SpeechRecorder {
                     <div id="speech-record-list" class="list-group list-group-flush"></div>
                 </div>
                 <div class="card-footer py-1 bg-dark d-flex justify-content-between">
-                    <small class="text-light">自動記錄語音內容</small>
+                    <small class="text-light">自動記錄語音內容 (包含標點符號)</small>
                     <span class="badge bg-danger" id="recording-status">錄製中</span>
                 </div>
             </div>
@@ -152,21 +152,22 @@ class SpeechRecorder {
     
     /**
      * 添加對話條目
-     * @param {string} speaker - 'doctor' 或 'patient'
+     * @param {string} speaker - 'doctor' 或 'patient' 或 'unknown'
      * @param {string} text - 對話文本
      */
     addDialogEntry(speaker, text) {
         // 如果沒有在記錄則跳過
         if (!this.isRecording) return;
         
-        // 根據說話者格式化顯示名稱
-        const displayName = speaker === 'doctor' ? '醫生' : (speaker === 'patient' ? '病人' : '未知');
-        const bgColor = speaker === 'doctor' ? 'bg-primary bg-opacity-10' : (speaker === 'patient' ? 'bg-success bg-opacity-10' : 'bg-secondary bg-opacity-10');
-        const textColor = speaker === 'doctor' ? 'text-primary' : (speaker === 'patient' ? 'text-success' : 'text-secondary');
+        // 暫時忽略說話者，全部顯示為同一樣式
+        // 根據要求先忽略說話者選擇
+        const displayName = '語音記錄';
+        const bgColor = 'bg-dark bg-opacity-10';
+        const textColor = 'text-dark';
         
         // 創建條目
         const entry = {
-            speaker: speaker,
+            speaker: 'unknown',  // 先忽略說話者
             text: text,
             timestamp: new Date()
         };
@@ -185,11 +186,11 @@ class SpeechRecorder {
         // 清空當前列表
         this.dialogList.innerHTML = '';
         
-        // 添加所有對話
+        // 添加所有對話 - 忽略說話者區分
         this.dialogHistory.forEach(entry => {
-            const displayName = entry.speaker === 'doctor' ? '醫生' : (entry.speaker === 'patient' ? '病人' : '未知');
-            const bgColor = entry.speaker === 'doctor' ? 'bg-primary bg-opacity-10' : (entry.speaker === 'patient' ? 'bg-success bg-opacity-10' : 'bg-secondary bg-opacity-10');
-            const textColor = entry.speaker === 'doctor' ? 'text-primary' : (entry.speaker === 'patient' ? 'text-success' : 'text-secondary');
+            const displayName = '語音記錄';
+            const bgColor = 'bg-dark bg-opacity-10';
+            const textColor = 'text-dark';
             
             const listItem = document.createElement('div');
             listItem.className = `list-group-item ${bgColor} border-0`;
