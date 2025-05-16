@@ -330,61 +330,148 @@ class ConversationAnalyzer {
      * @returns {string} 說話者類型 ('doctor' 或 'patient')
      */
     analyzeSpeaker(text) {
+        if (!text) return 'patient'; // 默認
+        
         const lowerText = text.toLowerCase();
         
-        // 醫生常用語言模式
-        const doctorPatterns = [
-            /您好/i, /請問/i, /有什麼不舒服/i, /哪裡不舒服/i, /什麼時候開始/i, 
-            /多久了/i, /需要做/i, /建議您/i, /您需要/i, /您應該/i, /醫生/i,
-            /告訴我/i, /疼痛程度/i, /吃過藥/i, /做過檢查/i, /之前有過/i,
-            /家族史/i, /過敏史/i, /用藥史/i, /既往史/i
+        // 醫生特定術語和專業詞彙
+        const medicalTerms = [
+            '診斷', '檢查', '病理', '症狀', '藥物', '治療', '劑量', '預後', 
+            '轉診', '穿刺', '切片', '造影', '超音波', 'CT', 'MRI', 'X光',
+            '胸片', '肺功能', '處方', '副作用', '術前', '術後', '抗生素',
+            '抑制劑', '阻斷劑', '免疫', '胃鏡', '腸鏡', '血清', '生化指標'
         ];
         
-        // 病人常用語言模式
-        const patientPatterns = [
-            /我感覺/i, /我覺得/i, /我有/i, /不舒服/i, /痛/i, /疼/i, /不適/i, 
-            /難受/i, /頭暈/i, /噁心/i, /嘔吐/i, /發燒/i, /咳嗽/i, /腹瀉/i, 
-            /我是/i, /大概/i, /可能/i, /沒有/i, /有一點/i, /患者/i, /病人/i
+        // 醫生常用詞和語氣
+        const doctorPhrases = [
+            '您好', '請問', '能否', '麻煩', '需要', '建議', '應該', '請',
+            '讓我', '我們', '必須', '可以', '正常值', '範圍', '標準', '指標',
+            '告訴我', '說明一下', '描述一下', '感覺如何', '您有', '您的', '要做', '要服用'
         ];
         
-        // 檢測是否是醫生的提問
-        let isDoctorSpeaking = false;
-        for (const pattern of doctorPatterns) {
+        // 醫生常用問句模式
+        const doctorQuestions = [
+            /您?(感覺|覺得)怎麼樣/i,
+            /您?哪裡不舒服/i,
+            /您?有什麼症狀/i,
+            /痛(的)?(感覺|程度)(是怎樣|如何)/i,
+            /什麼時候(開始|發生)/i,
+            /(多久|幾天)了/i,
+            /有沒有(吃藥|服藥|用藥|做檢查|看醫生)/i,
+            /之前有(沒有)?(類似|這樣|相同)/i,
+            /過去有(沒有)?/i,
+            /家族中有(沒有)?人/i,
+            /您?(平常|平時|最近|經常)/i,
+            /需要再(觀察|檢查|服藥)/i,
+            /您?(最近|近期)(有沒有)?/i
+        ];
+        
+        // 病人常用表達
+        const patientPhrases = [
+            '我感覺', '我覺得', '我有', '我的', '我很', '我非常', '我想', 
+            '我', '不舒服', '難受', '痛', '疼', '酸', '脹', '麻', '癢', 
+            '不適', '不行', '不能', '無法', '沒辦法', '受不了', '我希望', 
+            '想請問', '幫我', '希望', '好像', '可能', '有點', '有時候'
+        ];
+        
+        // 病人常見症狀描述
+        const symptomDescriptions = [
+            '頭痛', '頭暈', '噁心', '嘔吐', '胸悶', '胸痛', '腹痛', '腹瀉', 
+            '便秘', '發燒', '咳嗽', '喉嚨痛', '呼吸困難', '疲勞', '全身無力',
+            '食慾不振', '睡不好', '睡不著', '失眠', '多尿', '尿頻', '尿急', 
+            '尿痛', '血尿', '關節痛', '肌肉痛', '皮疹', '出疹子', '水腫', 
+            '起水泡', '發癢', '刺痛', '抽痛', '悶痛', '割痛', '燒灼感'
+        ];
+        
+        // 系統性評分 (而不是簡單計數)
+        let doctorScore = 0;
+        let patientScore = 0;
+        
+        // 檢查問句特徵 (極強的醫生指標)
+        if (text.includes('?') || text.includes('？')) {
+            doctorScore += 5;
+        }
+        
+        // 檢查醫生問診模式
+        for (const pattern of doctorQuestions) {
             if (pattern.test(lowerText)) {
-                isDoctorSpeaking = true;
+                doctorScore += 8; // 非常強的指標
                 break;
             }
         }
         
-        // 檢測是否是病人的回答
-        let isPatientSpeaking = false;
-        for (const pattern of patientPatterns) {
-            if (pattern.test(lowerText)) {
-                isPatientSpeaking = true;
-                break;
+        // 檢查專業醫學術語 (很強的醫生指標)
+        for (const term of medicalTerms) {
+            if (lowerText.includes(term.toLowerCase())) {
+                doctorScore += 3;
             }
         }
         
-        // 如果醫生特徵明顯，或者有問號但無病人特徵
-        if ((isDoctorSpeaking && !isPatientSpeaking) || 
-            ((text.includes('?') || text.includes('？')) && !isPatientSpeaking)) {
+        // 檢查醫生常用詞和語氣
+        for (const phrase of doctorPhrases) {
+            if (lowerText.includes(phrase.toLowerCase())) {
+                doctorScore += 2;
+            }
+        }
+        
+        // 檢查病人常用表達
+        for (const phrase of patientPhrases) {
+            if (lowerText.includes(phrase.toLowerCase())) {
+                patientScore += 2;
+            }
+        }
+        
+        // 檢查病人症狀描述 (很強的病人指標)
+        for (const symptom of symptomDescriptions) {
+            if (lowerText.includes(symptom.toLowerCase())) {
+                patientScore += 2.5;
+            }
+        }
+        
+        // 字詞長度和結構分析
+        // 醫生通常使用較長、結構化的句子
+        if (text.length > 25 && text.split(' ').length > 10) {
+            doctorScore += 1;
+        }
+        
+        // 分析句式 - 以"您"開頭通常是醫生
+        if (lowerText.startsWith('您') || lowerText.startsWith('請您')) {
+            doctorScore += 3;
+        }
+        
+        // 分析句式 - 以"我"開頭通常是病人
+        if (lowerText.startsWith('我') || lowerText.startsWith('我的') || lowerText.startsWith('我覺得') || lowerText.startsWith('我感覺')) {
+            patientScore += 3;
+        }
+        
+        // 考慮對話脈絡 (對話通常是一問一答模式)
+        if (this.conversations.length > 0) {
+            const lastSpeaker = this.conversations[this.conversations.length - 1].speaker;
+            if (lastSpeaker === 'doctor') {
+                patientScore += 2; // 醫生說完通常是病人回答
+            } else if (lastSpeaker === 'patient') {
+                doctorScore += 1.5; // 病人說完可能是醫生提問或回應
+            }
+        }
+        
+        console.log(`說話者分析: 醫生得分=${doctorScore}, 病人得分=${patientScore}`);
+        
+        // 根據分數決定說話者
+        if (doctorScore > patientScore + 2) { // 給醫生需要更明確的優勢
             return 'doctor';
-        } 
-        // 如果病人特徵明顯
-        else if (isPatientSpeaking && !isDoctorSpeaking) {
+        } else if (patientScore >= doctorScore) {
             return 'patient';
-        }
-        // 無法確定，根據上下文或默認
-        else {
-            // 如果對話歷史有內容，檢查最後一句是否是醫生說的，如果是，這句可能是病人回答
+        } else {
+            // 邊界情況 - 查看上下文或使用默認
             if (this.conversations.length > 0) {
                 const lastSpeaker = this.conversations[this.conversations.length - 1].speaker;
                 if (lastSpeaker === 'doctor') {
-                    return 'patient';
+                    return 'patient'; // 對話通常是交替的
                 }
             }
-            // 默認為病人
-            return 'patient';
+            
+            // 無法確定時的默認選擇
+            return 'patient'; // 默認認為是病人在說話
         }
     }
     
