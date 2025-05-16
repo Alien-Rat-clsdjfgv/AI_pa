@@ -157,11 +157,18 @@ class MedicalVoiceSystem {
                     finalTranscript += transcript;
                     console.log('獲得最終結果: ' + transcript);
                     
-                    // 發送事件給對話分析器進行自動分析
+                    // 獲取當前說話者身份
+                    let currentSpeaker = null;
+                    if (window.speakerSelector) {
+                        currentSpeaker = window.speakerSelector.getCurrentSpeaker();
+                    }
+                    
+                    // 發送事件給對話分析器進行自動分析，包含說話者資訊
                     const resultEvent = new CustomEvent('voice-recognition-result', {
                         detail: {
                             text: transcript,
-                            isFinal: true
+                            isFinal: true,
+                            speaker: currentSpeaker  // 明確指定說話者身份
                         }
                     });
                     document.dispatchEvent(resultEvent);
