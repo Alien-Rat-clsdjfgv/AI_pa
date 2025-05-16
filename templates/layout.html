@@ -134,8 +134,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JavaScript -->
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    <!-- 智能語音識別功能 -->
-    <script src="{{ url_for('static', filename='js/smart-voice-input.js') }}"></script>
+    <!-- 移除全局智能語音識別功能，改為在各頁面中按需加載 -->
     
     {% block scripts %}{% endblock %}
 </body>
