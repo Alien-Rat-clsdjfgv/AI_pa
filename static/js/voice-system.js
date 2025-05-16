@@ -415,7 +415,24 @@ document.addEventListener('DOMContentLoaded', function() {
             // 視覺反饋
             flashVoiceButton();
             
-            // 分類處理文本
+            // 向對話分析器發送事件
+            if (window.conversationAnalyzer) {
+                // 直接添加到對話分析器
+                window.conversationAnalyzer.addConversation(transcript, true);
+                
+                // 發送自定義事件 (以便其他組件可以監聽)
+                const recognitionEvent = new CustomEvent('voice-recognition-result', {
+                    detail: {
+                        text: transcript,
+                        isFinal: true
+                    }
+                });
+                document.dispatchEvent(recognitionEvent);
+                
+                console.log('語音內容已發送到對話分析器');
+            }
+            
+            // 分類處理文本 (保留原有功能作為備用)
             if (voiceSystem.isAutoMode) {
                 intelligentMatch(transcript);
             } else if (voiceSystem.currentTarget) {
