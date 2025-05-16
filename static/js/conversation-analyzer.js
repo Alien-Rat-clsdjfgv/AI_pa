@@ -22,6 +22,21 @@ class ConversationAnalyzer {
         // 分析完成的回調
         this.onAnalysisComplete = null;
         
+        // 文化背景和語言上下文
+        this.culturalContext = 'taiwanese'; // 默認文化背景：taiwanese, mainland, western
+        this.symptomTerms = {
+            fever: ['發燒', '發熱'],
+            cough: ['咳嗽', '久咳'],
+            headache: ['頭痛', '頭痠'],
+            nausea: ['噁心', '想吐'],
+            vomit: ['嘔吐', '吐']
+        };
+        this.culturalContextRules = {
+            formalAddressing: true,  // 使用尊稱
+            indirectExpression: true, // 間接表達不適
+            communityReference: true  // 提及家庭/群體
+        };
+        
         // 分類器參數
         this.classifiers = {
             'chiefComplaint': {
