@@ -113,14 +113,10 @@ class MedicalVoiceSystem {
                     finalTranscript += transcript;
                     console.log('獲得最終結果: ' + transcript);
                     
-                    // 獲取當前選定的說話者
-                    let currentSpeaker = this.analyzer ? this.analyzer.getManualSpeaker() : 'patient';
-                    
-                    // 發送事件給對話分析器
+                    // 發送事件給對話分析器進行自動分析
                     const resultEvent = new CustomEvent('voice-recognition-result', {
                         detail: {
                             text: transcript,
-                            speaker: currentSpeaker,
                             isFinal: true
                         }
                     });

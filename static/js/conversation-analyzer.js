@@ -267,7 +267,7 @@ class ConversationAnalyzer {
         if (!this.isActive || !text || text.trim() === '') return;
         
         // 使用手動指定的說話者或自動分析
-        const speaker = manualSpeaker || this.analyzeSpeaker(text);
+        const speaker = this.analyzeSpeaker(text);
         
         console.log(`添加${speaker}對話: "${text}"`);
         
@@ -281,9 +281,6 @@ class ConversationAnalyzer {
         
         // 更新UI
         this.updateConversationUI();
-        
-        // 啟用語音按鈕上的手動標記功能
-        this.enableManualSpeakerToggle();
     }
     
     /**
