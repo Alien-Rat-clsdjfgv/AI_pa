@@ -78,8 +78,10 @@ class VoiceIntegration {
         this.recognition.interimResults = true;  // 獲取中間結果
         this.recognition.maxAlternatives = 3;    // 最多3個替代結果
         
-        // 設定僅使用繁體中文
+        // 設定僅使用繁體中文並啟用語音標點符號
         this.recognition.lang = 'zh-TW';         // 繁體中文
+        // 開啟連續模式以獲取更完整的句子，包含標點符號
+        this.recognition.continuous = true;      // 連續模式
     }
     
     /**
@@ -354,11 +356,8 @@ class VoiceIntegration {
     processResult(result, confidence) {
         if (!result || !this.targetField) return;
         
-        // 取得當前說話者
-        let currentSpeaker = 'doctor'; // 預設為醫生
-        if (window.speakerSelector) {
-            currentSpeaker = window.speakerSelector.getCurrentSpeaker();
-        }
+        // 先忽略說話者，直接使用預設值
+        let currentSpeaker = 'unknown'; // 暫時不區分說話者
         
         // 更新目標欄位
         this.updateTargetField(result);
