@@ -48,11 +48,9 @@ with app.app_context():
     
     # 導入路由模塊
     from routes.medical_routes import medical_bp
-    from routes.original_routes import original_bp
     
     # 註冊藍圖
     app.register_blueprint(medical_bp)
-    app.register_blueprint(original_bp)
 
 if __name__ == "__main__":
     # 使用端口8080而不是5000，以避免端口衝突
