@@ -610,25 +610,86 @@ class ConversationAnalyzer {
         // 提取每個分類的資訊
         const extractedInfo = {};
         
-        // 先獲取病人主訴（僅限病人說的話）
-        const patientSpeeches = this.conversations.filter(item => item.speaker === 'patient');
-        
-        // 對每個分類進行分析
+        // 初始化各分類空數組
         for (const category in this.classifiers) {
-            extractedInfo[category] = this.extractInfoForCategory(category, patientSpeeches);
+            extractedInfo[category] = [];
         }
         
-        // 尋找問答對 (醫生提問後病人的回答)
-        const qaInfos = this.extractQuestionAnswerPairs();
-        for (const qa of qaInfos) {
-            const category = this.categorizeQA(qa);
-            if (category && !extractedInfo[category]) {
-                extractedInfo[category] = [];
+        // 分離醫生和病人的對話
+        const patientSpeeches = this.conversations.filter(item => item.speaker === 'patient');
+        const doctorSpeeches = this.conversations.filter(item => item.speaker === 'doctor');
+        
+        // 處理病人說的話 - 優先檢查主訴和伴隨症狀
+        for (const speech of patientSpeeches) {
+            const text = speech.text.toLowerCase();
+            
+            // 胃腸道症狀特別處理到伴隨症狀
+            if (text.includes('惡心') || text.includes('嘔吐') || 
+                text.includes('腹痛') || text.includes('腹瀉') || 
+                text.includes('便秘') || text.includes('胃痛')) {
+                extractedInfo.accompaniedSymptoms.push(speech.text);
+                
+                // 如果這是第一句話，也可能是主訴
+                if (patientSpeeches.indexOf(speech) === 0) {
+                    extractedInfo.chiefComplaint.push(speech.text);
+                }
+                continue;
             }
-            if (category) {
-                extractedInfo[category].push(qa.answer.text);
+            
+            // 檢查每個分類的關鍵詞
+            let matched = false;
+            for (const category in this.classifiers) {
+                // 跳過已經匹配的
+                if (matched) continue;
+                
+                const classifier = this.classifiers[category];
+                
+                // 檢查主要關鍵詞
+                for (const keyword of classifier.keywords || []) {
+                    if (text.includes(keyword.toLowerCase())) {
+                        extractedInfo[category].push(speech.text);
+                        matched = true;
+                        break;
+                    }
+                }
+                
+                // 檢查特定子類別關鍵詞
+                if (!matched) {
+                    for (const subField in classifier) {
+                        if (subField === 'keywords') continue;
+                        
+                        // 處理數組類型的關鍵詞
+                        if (Array.isArray(classifier[subField])) {
+                            for (const keyword of classifier[subField]) {
+                                if (text.includes(keyword.toLowerCase())) {
+                                    extractedInfo[category].push(speech.text);
+                                    matched = true;
+                                    break;
+                                }
+                            }
+                        }
+                        // 處理對象類型的關鍵詞（如symptomGroups）
+                        else if (typeof classifier[subField] === 'object') {
+                            for (const group in classifier[subField]) {
+                                for (const keyword of classifier[subField][group] || []) {
+                                    if (text.includes(keyword.toLowerCase())) {
+                                        extractedInfo[category].push(speech.text);
+                                        matched = true;
+                                        break;
+                                    }
+                                }
+                                if (matched) break;
+                            }
+                        }
+                        
+                        if (matched) break;
+                    }
+                }
             }
         }
+        
+        // 處理醫生的提問和病人的回答
+        const qaInfos = this.extractQuestionAnswerPairs();
         
         // 顯示分析結果
         this.showAnalysisResults(extractedInfo);
