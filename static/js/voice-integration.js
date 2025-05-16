@@ -444,11 +444,6 @@ class VoiceIntegration {
     startSmartVoiceMode() {
         console.log('啟動智能語音模式');
         
-        // 顯示說話者選擇器(如果存在)
-        if (window.speakerSelector) {
-            window.speakerSelector.show();
-        }
-        
         // 開始語音識別(針對病史欄位)
         this.startListening('history_present_illness');
     }
