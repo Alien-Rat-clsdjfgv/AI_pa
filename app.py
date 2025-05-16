@@ -1,10 +1,8 @@
 import os
+import logging
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
-import datetime
-import json
-import logging
 
 # 初始化日誌
 logging.basicConfig(level=logging.DEBUG)
@@ -34,8 +32,20 @@ def nl2br(value):
         return value.replace("\n", "<br>")
     return ""
 
+# 主路由重定向到醫療模塊
+@app.route("/")
+def index():
+    return redirect(url_for("medical.medical_home"))
+
 # 導入路由和模型
 with app.app_context():
+    # 導入模型
+    import models  # 原始模型
+    from models.medical_case import MedicalCase, MedicalSpecialty, Diagnosis, CaseTemplate
+    
+    # 創建數據庫表
+    db.create_all()
+    
     # 導入路由模塊
     from routes.medical_routes import medical_bp
     from routes.original_routes import original_bp
@@ -43,20 +53,7 @@ with app.app_context():
     # 註冊藍圖
     app.register_blueprint(medical_bp)
     app.register_blueprint(original_bp)
-    
-    # 導入模型
-    import models  # 原始模型
-    from models.medical_case import MedicalCase, MedicalSpecialty, Diagnosis, CaseTemplate
-    
-    # 創建數據庫表
-    db.create_all()
-
-# 主路由重定向到醫療模塊
-@app.route("/")
-def index():
-    return redirect(url_for("medical.medical_home"))
 
 if __name__ == "__main__":
     # 使用端口8080而不是5000，以避免端口衝突
     app.run(host="0.0.0.0", port=8080, debug=True)
-
