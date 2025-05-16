@@ -137,10 +137,6 @@ class MedicalVoiceSystem {
     /**
      * 設置語音識別實例
      */
-    /**
-     * 設置語音識別語言和文化背景
-     * @param {string} langCode 語言代碼
-     */
     setLanguage(langCode) {
         if (this.supportedLanguages[langCode]) {
             console.log(`切換語言為: ${this.supportedLanguages[langCode].name}`);
