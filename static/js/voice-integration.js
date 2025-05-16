@@ -73,15 +73,13 @@ class VoiceIntegration {
         // 創建實例
         this.recognition = new SpeechRecognition();
         
-        // 設置參數
-        this.recognition.continuous = false;     // 不連續聆聽
-        this.recognition.interimResults = true;  // 獲取中間結果
-        this.recognition.maxAlternatives = 3;    // 最多3個替代結果
-        
-        // 設定僅使用繁體中文並啟用語音標點符號
-        this.recognition.lang = 'zh-TW';         // 繁體中文
-        // 開啟連續模式以獲取更完整的句子，包含標點符號
+        // 設置參數 - 優化以獲取完整對話
         this.recognition.continuous = true;      // 連續模式
+        this.recognition.interimResults = true;  // 獲取中間結果
+        this.recognition.maxAlternatives = 1;    // 只需要最佳結果
+        
+        // 設定僅使用繁體中文
+        this.recognition.lang = 'zh-TW';         // 繁體中文
     }
     
     /**
@@ -121,8 +119,14 @@ class VoiceIntegration {
                     
                     // 使用最高信心度的結果
                     const confidence = results[i][0].confidence;
-                    if (confidence > this.confidenceThreshold) {
+                    // 降低信心閾值，接受更多語音結果
+                    if (confidence > 0.3) {
                         this.processResult(transcript, confidence);
+                        
+                        // 直接添加到完整記錄中，確保每個語句都被記錄
+                        if (window.speechRecorder) {
+                            window.speechRecorder.addDialogEntry('unknown', transcript);
+                        }
                     } else {
                         console.log(`結果信心度過低 (${Math.round(confidence * 100)}%): ${transcript}`);
                     }
@@ -154,6 +158,13 @@ class VoiceIntegration {
             this.dispatchEvent('voice-recognition-end');
             
             console.log('語音識別結束事件觸發');
+            
+            // 自動重新啟動語音識別以維持連續記錄
+            if (this.targetField) {
+                setTimeout(() => {
+                    this.startListening(this.targetField.id);
+                }, 300);
+            }
         };
         
         // 語音識別錯誤事件
@@ -195,6 +206,14 @@ class VoiceIntegration {
             this.isListening = false;
             this.status = 'inactive';
             this.updateStatusUI();
+            
+            // 嘗試在錯誤後自動重新啟動 (除非是權限錯誤)
+            if (event.error !== 'not-allowed' && event.error !== 'service-not-allowed' && this.targetField) {
+                console.log('嘗試在錯誤後重新啟動語音識別...');
+                setTimeout(() => {
+                    this.startListening(this.targetField.id);
+                }, 1000);
+            }
         };
     }
     
@@ -369,6 +388,11 @@ class VoiceIntegration {
             speaker: currentSpeaker,
             targetField: this.targetField.id
         });
+        
+        // 同時將結果添加到語音記錄器 (確保所有識別結果都被記錄)
+        if (window.speechRecorder) {
+            window.speechRecorder.addDialogEntry('unknown', result);
+        }
     }
     
     /**
