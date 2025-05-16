@@ -882,13 +882,30 @@ class ConversationAnalyzer {
         // 獲取所有分類結果
         const categoryContents = document.querySelectorAll('.category-content');
         
+        // 定義欄位映射表 - 將分析器類別名稱映射到表單欄位ID
+        const fieldMapping = {
+            'chiefComplaint': 'chief_complaint',
+            'presentIllness': 'history_present_illness',
+            'accompaniedSymptoms': 'physical_examination', // 伴隨症狀暫時和體格檢查共用欄位
+            'pastMedicalHistory': 'past_medical_history',
+            'medications': 'medications',
+            'allergies': 'allergies',
+            'familyHistory': 'family_history',
+            'socialHistory': 'social_history',
+            'physicalExam': 'physical_examination',
+            'vitalSigns': 'vital_signs'
+        };
+        
         categoryContents.forEach(textarea => {
             const category = textarea.getAttribute('data-category');
             const content = textarea.value;
             
             if (category && content) {
-                // 根據分類找到對應表單元素
-                const formTextarea = document.getElementById(category);
+                // 使用映射表找到對應的表單欄位ID
+                const fieldId = fieldMapping[category] || category;
+                
+                // 根據映射後的ID找到表單元素
+                const formTextarea = document.getElementById(fieldId);
                 if (formTextarea) {
                     // 添加內容
                     if (formTextarea.value) {
@@ -903,9 +920,9 @@ class ConversationAnalyzer {
                         formTextarea.classList.remove('flash-effect');
                     }, 1000);
                     
-                    console.log(`成功將內容添加到 ${category}`);
+                    console.log(`成功將內容添加到 ${fieldId}`);
                 } else {
-                    console.warn(`找不到ID為 ${category} 的表單元素`);
+                    console.warn(`找不到ID為 ${fieldId} 的表單元素`);
                 }
             }
         });
