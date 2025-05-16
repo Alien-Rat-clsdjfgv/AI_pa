@@ -1,21 +1,17 @@
 import logging
 import json
 from datetime import datetime
-from flask import render_template, request, redirect, url_for, flash, jsonify, session, Response
-from app import app, db
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session, Response
+from app import db
 from models.medical_case import MedicalCase, MedicalSpecialty, Diagnosis, CaseTemplate
 from services.medical_case_generator import generate_medical_case, extract_diagnoses_from_assessment, generate_present_illness
 from services.export_service import export_case
 from utils import get_api_key
 
-@app.route('/index')
-@app.route('/')
-def index():
-    """Alias for the original index route"""
-    # Redirect to original index
-    return redirect(url_for('medical_home'))
+# 創建藍圖
+medical_bp = Blueprint('medical', __name__, url_prefix='/medical')
 
-@app.route('/medical', methods=['GET'])
+@medical_bp.route('/')
 def medical_home():
     """Medical case generator home page"""
     # Check for API key connection
@@ -39,7 +35,7 @@ def medical_home():
         templates=templates
     )
 
-@app.route('/medical/generate', methods=['POST'])
+@medical_bp.route('/generate', methods=['POST'])
 def generate_case():
     """Generate a medical case"""
     api_key = get_api_key()
@@ -149,7 +145,7 @@ def generate_case():
         logging.error(f"Error generating medical case: {str(e)}")
         return jsonify({'success': False, 'message': str(e)})
 
-@app.route('/medical/cases', methods=['GET'])
+@medical_bp.route('/cases', methods=['GET'])
 def list_cases():
     """List all medical cases"""
     cases = MedicalCase.query.order_by(MedicalCase.created_at.desc()).all()
@@ -161,20 +157,20 @@ def list_cases():
         specialties=specialties
     )
 
-@app.route('/medical/case/<int:id>', methods=['GET'])
+@medical_bp.route('/case/<int:id>', methods=['GET'])
 def view_case(id):
     """View a specific medical case"""
     case = MedicalCase.query.get_or_404(id)
     return render_template('medical/view_case.html', case=case)
 
-@app.route('/medical/case/<int:id>/export/<format_type>', methods=['GET'])
+@medical_bp.route('/case/<int:id>/export/<format_type>', methods=['GET'])
 def export_medical_case(id, format_type):
     """Export a medical case in specified format"""
     case = MedicalCase.query.get_or_404(id)
     
     if format_type not in ['txt', 'html', 'json']:
         flash('不支持的導出格式', 'danger')
-        return redirect(url_for('view_case', id=id))
+        return redirect(url_for('medical.view_case', id=id))
     
     try:
         content, mime_type, filename = export_case(case, format_type)
@@ -192,9 +188,9 @@ def export_medical_case(id, format_type):
     except Exception as e:
         logging.error(f"Error exporting case {id} as {format_type}: {str(e)}")
         flash(f'導出失敗: {str(e)}', 'danger')
-        return redirect(url_for('view_case', id=id))
+        return redirect(url_for('medical.view_case', id=id))
 
-@app.route('/medical/case/<int:id>/delete', methods=['POST'])
+@medical_bp.route('/case/<int:id>/delete', methods=['POST'])
 def delete_case(id):
     """Delete a medical case"""
     case = MedicalCase.query.get_or_404(id)
@@ -207,15 +203,15 @@ def delete_case(id):
         db.session.rollback()
         flash(f'Error deleting case: {str(e)}', 'danger')
     
-    return redirect(url_for('list_cases'))
+    return redirect(url_for('medical.list_cases'))
 
-@app.route('/medical/specialties', methods=['GET'])
+@medical_bp.route('/specialties', methods=['GET'])
 def list_specialties():
     """List all medical specialties"""
     specialties = MedicalSpecialty.query.all()
     return render_template('medical/specialties.html', specialties=specialties)
 
-@app.route('/medical/specialty/add', methods=['POST'])
+@medical_bp.route('/specialty/add', methods=['POST'])
 def add_specialty():
     """Add a new medical specialty"""
     name = request.form.get('name')
@@ -223,7 +219,7 @@ def add_specialty():
     
     if not name:
         flash('Specialty name is required', 'danger')
-        return redirect(url_for('list_specialties'))
+        return redirect(url_for('medical.list_specialties'))
     
     try:
         specialty = MedicalSpecialty(
@@ -237,16 +233,16 @@ def add_specialty():
         db.session.rollback()
         flash(f'Error adding specialty: {str(e)}', 'danger')
     
-    return redirect(url_for('list_specialties'))
+    return redirect(url_for('medical.list_specialties'))
 
-@app.route('/medical/templates', methods=['GET'])
+@medical_bp.route('/templates', methods=['GET'])
 def list_templates():
     """List all case templates"""
     templates = CaseTemplate.query.all()
     specialties = MedicalSpecialty.query.all()
     return render_template('medical/templates.html', templates=templates, specialties=specialties)
 
-@app.route('/medical/template/add', methods=['POST'])
+@medical_bp.route('/template/add', methods=['POST'])
 def add_template():
     """Add a new case template"""
     data = request.form
@@ -259,7 +255,7 @@ def add_template():
     
     if not name or not prompt_template:
         flash('Template name and prompt template are required', 'danger')
-        return redirect(url_for('list_templates'))
+        return redirect(url_for('medical.list_templates'))
     
     try:
         template = CaseTemplate(
@@ -276,15 +272,15 @@ def add_template():
         db.session.rollback()
         flash(f'Error adding template: {str(e)}', 'danger')
     
-    return redirect(url_for('list_templates'))
+    return redirect(url_for('medical.list_templates'))
 
-@app.route('/medical/template/<int:id>', methods=['GET'])
+@medical_bp.route('/template/<int:id>', methods=['GET'])
 def view_template(id):
     """View a specific template"""
     template = CaseTemplate.query.get_or_404(id)
     return render_template('medical/view_template.html', template=template)
 
-@app.route('/medical/template/<int:id>/delete', methods=['POST'])
+@medical_bp.route('/template/<int:id>/delete', methods=['POST'])
 def delete_template(id):
     """Delete a template"""
     template = CaseTemplate.query.get_or_404(id)
@@ -297,9 +293,9 @@ def delete_template(id):
         db.session.rollback()
         flash(f'Error deleting template: {str(e)}', 'danger')
     
-    return redirect(url_for('list_templates'))
+    return redirect(url_for('medical.list_templates'))
 
-@app.route('/medical/generate-present-illness', methods=['POST'])
+@medical_bp.route('/generate-present-illness', methods=['POST'])
 def generate_present_illness_endpoint():
     """Generate just the present illness section"""
     api_key = get_api_key()
