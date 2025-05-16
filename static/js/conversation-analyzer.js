@@ -230,13 +230,16 @@ class ConversationAnalyzer {
     /**
      * 添加對話內容
      * @param {string} text 對話文本
+     * @param {string} [manualSpeaker] 手動指定的說話者 ('doctor' 或 'patient')
      * @param {boolean} isFinal 是否是最終結果
      */
-    addConversation(text, isFinal = true) {
+    addConversation(text, manualSpeaker = null, isFinal = true) {
         if (!this.isActive || !text || text.trim() === '') return;
         
-        // 分析說話者 (醫生還是病人)
-        const speaker = this.analyzeSpeaker(text);
+        // 使用手動指定的說話者或自動分析
+        const speaker = manualSpeaker || this.analyzeSpeaker(text);
+        
+        console.log(`添加${speaker}對話: "${text}"`);
         
         // 添加到對話列表
         this.conversations.push({
@@ -249,7 +252,76 @@ class ConversationAnalyzer {
         // 更新UI
         this.updateConversationUI();
         
-        console.log(`添加${speaker}對話: "${text}"`);
+        // 啟用語音按鈕上的手動標記功能
+        this.enableManualSpeakerToggle();
+    }
+    
+    /**
+     * 啟用手動標記說話者的功能
+     */
+    enableManualSpeakerToggle() {
+        if (document.getElementById('manual-speaker-controls')) return;
+        
+        // 添加說話者切換按鈕
+        const container = document.createElement('div');
+        container.id = 'manual-speaker-controls';
+        container.className = 'position-fixed';
+        container.style.bottom = '150px';
+        container.style.right = '20px';
+        container.style.zIndex = '1039';
+        container.innerHTML = `
+            <div class="card shadow-sm">
+                <div class="card-header py-1 px-3 bg-light">
+                    <small>選擇說話者</small>
+                </div>
+                <div class="card-body py-2 px-3">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="speaker" id="doctor-speaker" value="doctor">
+                        <label class="form-check-label" for="doctor-speaker">
+                            <i class="fas fa-user-md text-primary"></i> 醫生
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="speaker" id="patient-speaker" value="patient" checked>
+                        <label class="form-check-label" for="patient-speaker">
+                            <i class="fas fa-user text-success"></i> 病人
+                        </label>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(container);
+        
+        // 添加事件處理
+        const doctorRadio = document.getElementById('doctor-speaker');
+        const patientRadio = document.getElementById('patient-speaker');
+        
+        if (doctorRadio) {
+            doctorRadio.addEventListener('change', () => {
+                console.log('說話者設置為: 醫生');
+            });
+        }
+        
+        if (patientRadio) {
+            patientRadio.addEventListener('change', () => {
+                console.log('說話者設置為: 病人');
+            });
+        }
+    }
+    
+    /**
+     * 獲取當前手動選擇的說話者
+     * @returns {string|null} 說話者類型 ('doctor', 'patient') 或 null
+     */
+    getManualSpeaker() {
+        const doctorRadio = document.getElementById('doctor-speaker');
+        const patientRadio = document.getElementById('patient-speaker');
+        
+        if (doctorRadio && doctorRadio.checked) return 'doctor';
+        if (patientRadio && patientRadio.checked) return 'patient';
+        
+        return null;
     }
     
     /**
