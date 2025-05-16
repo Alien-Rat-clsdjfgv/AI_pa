@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenAI API Tester</title>
+    <title>醫療病例生成系統</title>
     <!-- Bootstrap CSS (Replit dark theme) -->
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     <!-- Font Awesome icons -->
@@ -20,7 +20,7 @@
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container-fluid">
                 <a class="navbar-brand" href="/">
-                    <i class="fas fa-robot me-2"></i>OpenAI API Tester
+                    <i class="fas fa-file-medical me-2"></i>醫療病例生成系統
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
@@ -33,21 +33,14 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/test-cases">
-                                <i class="fas fa-history me-1"></i> Test History
+                            <a class="nav-link" href="/medical">
+                                <i class="fas fa-file-medical me-1"></i> 醫療案例生成
                             </a>
                         </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="medicalDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-file-medical me-1"></i> 醫療案例生成器
+                        <li class="nav-item">
+                            <a class="nav-link" href="/medical/cases">
+                                <i class="fas fa-list me-1"></i> 案例列表
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="medicalDropdown">
-                                <li><a class="dropdown-item" href="/medical">生成案例</a></li>
-                                <li><a class="dropdown-item" href="/medical/cases">案例列表</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="/medical/templates">範本管理</a></li>
-                                <li><a class="dropdown-item" href="/medical/specialties">專科管理</a></li>
-                            </ul>
                         </li>
                     </ul>
                     <div class="ms-auto d-flex align-items-center" id="apiKeyStatus">
@@ -97,9 +90,6 @@
         </a>
         <a href="/medical/cases" class="btn btn-outline-info touch-friendly">
             <i class="fas fa-list-ul"></i>
-        </a>
-        <a href="/medical/templates" class="btn btn-outline-warning touch-friendly">
-            <i class="fas fa-clipboard-list"></i>
         </a>
         <button id="mobileApiKeyButton" class="btn btn-outline-danger touch-friendly" data-bs-toggle="modal" data-bs-target="#apiKeyModal">
             <i class="fas fa-key"></i>
