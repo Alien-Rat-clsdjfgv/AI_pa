@@ -287,14 +287,47 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 儲存原始值以便檢測變化
         const originalValue = currentField.value;
+        let newValue = transcript;
+        
+        // 過濾常見的語音錯誤與辨識問題
+        // 1. 移除重複片段
+        if (transcript.length > 10) {
+            // 檢查是否有相同句子重複
+            const parts = transcript.split(/[，。,.!?！？]/);
+            if (parts.length > 1) {
+                const uniqueParts = [...new Set(parts)];
+                if (uniqueParts.length < parts.length) {
+                    newValue = uniqueParts.join('，');
+                }
+            }
+        }
+        
+        // 2. 移除雜訊或無意義詞
+        const noiseWords = ['嗯', '啊', '呃', '那個', '就是說'];
+        noiseWords.forEach(word => {
+            newValue = newValue.replace(new RegExp(`${word}\\s*`, 'g'), '');
+        });
+        
+        // 3. 修正常見語音辨識錯誤
+        const corrections = {
+            '不適付': '不舒服',
+            '不是付': '不舒服',
+            '步速': '不舒',
+            '不速': '不舒',
+            '不速付': '不舒服'
+        };
+        
+        Object.keys(corrections).forEach(error => {
+            newValue = newValue.replace(new RegExp(error, 'g'), corrections[error]);
+        });
         
         // 將識別的文本添加到字段
-        if (currentField.value) {
-            // 如果已有內容，添加到末尾
-            currentField.value += ' ' + transcript;
+        if (currentField.value && currentField.value.trim() !== '') {
+            // 如果已有內容且不為空，添加到末尾
+            currentField.value += '，' + newValue;
         } else {
             // 如果沒有內容，直接設置
-            currentField.value = transcript;
+            currentField.value = newValue;
         }
         
         // 只有當內容確實改變時才觸發事件
@@ -307,7 +340,31 @@ document.addEventListener('DOMContentLoaded', function() {
             const inputEvent = new Event('input', { bubbles: true });
             currentField.dispatchEvent(inputEvent);
             
-            console.log(`已更新欄位 ${currentField.id}: ${transcript}`);
+            // 提供更詳細的日誌
+            console.log(`已更新欄位 ${currentField.id}: ${newValue} (原始識別: ${transcript})`);
+            
+            // 創建一個浮動提示，顯示內容已添加
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed text-white p-2 rounded';
+            toast.style.backgroundColor = 'rgba(40, 167, 69, 0.8)';
+            toast.style.zIndex = '9999';
+            toast.style.bottom = '20%';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.maxWidth = '80%';
+            toast.style.fontSize = '14px';
+            toast.innerHTML = `<strong>已添加:</strong> ${newValue.length > 30 ? newValue.substring(0, 30) + '...' : newValue}`;
+            
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s';
+                setTimeout(() => {
+                    try {
+                        document.body.removeChild(toast);
+                    } catch (e) {}
+                }, 500);
+            }, 2000);
         }
     }
     
