@@ -120,6 +120,29 @@
     min-width: 44px;
 }
 
+/* 說話者選擇器樣式 */
+#speaker-selector {
+    z-index: 1040;
+}
+
+#speaker-selector .btn {
+    min-height: 54px;
+    font-size: 1.1rem;
+}
+
+#speaker-toggle-btn {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+#speaker-toggle-btn:hover {
+    transform: scale(1.05);
+}
+
+#speaker-toggle-btn:active {
+    transform: scale(0.95);
+}
+
 .section-container {
     border: 1px solid #dee2e6;
     border-radius: 0.25rem;
