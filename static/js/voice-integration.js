@@ -604,8 +604,9 @@ class MedicalVoiceSystem {
 // 在頁面載入完成後初始化語音系統
 document.addEventListener('DOMContentLoaded', () => {
     // 檢查是否在醫療表單頁面
-    if (document.getElementById('case-form') || 
+    if (document.getElementById('caseGeneratorForm') || 
         document.querySelector('form[action*="generate_case"]') ||
+        document.getElementById('chief_complaint') ||
         document.getElementById('medical-case-view')) {
         
         console.log('醫療表單頁面已加載，初始化語音系統');
