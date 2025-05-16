@@ -48,6 +48,11 @@ class MedicalVoiceSystem {
      */
     initialize() {
         // 檢查瀏覽器兼容性
+        
+        // 初始化說話者選擇器
+        if (window.speakerSelector) {
+            window.speakerSelector.initialize();
+        }
         if (!this.checkBrowserSupport()) {
             console.error('您的瀏覽器不支持語音識別功能');
             return false;

@@ -249,7 +249,9 @@ class ConversationAnalyzer {
         // 監聽語音系統的事件
         document.addEventListener('voice-recognition-result', (event) => {
             if (event.detail && event.detail.text) {
-                this.addConversation(event.detail.text, event.detail.isFinal || true);
+                // 如果事件中包含說話者信息，則使用它；否則自動分析
+                const speaker = event.detail.speaker || null;
+                this.addConversation(event.detail.text, speaker, event.detail.isFinal || true);
             }
         });
     }
