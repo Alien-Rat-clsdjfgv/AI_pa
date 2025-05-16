@@ -618,6 +618,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function showTargetSelector() {
+        // 如果已經存在選擇器，先清除
+        if (ui.overlayElement) {
+            closeTargetSelector();
+        }
+        
         // 創建覆蓋層
         ui.overlayElement = document.createElement('div');
         ui.overlayElement.className = 'modal-backdrop fade show';
@@ -627,17 +632,37 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 顯示提示
         const instructionBox = document.createElement('div');
+        instructionBox.id = 'target-selector-instruction';
         instructionBox.className = 'alert alert-warning text-center position-fixed';
         instructionBox.style.top = '20%';
         instructionBox.style.left = '50%';
         instructionBox.style.transform = 'translateX(-50%)';
         instructionBox.style.zIndex = '1060';
         instructionBox.style.maxWidth = '80%';
-        instructionBox.innerHTML = '<b>請選擇要輸入的文本框</b><p>點擊任何文本框作為語音輸入目標</p>';
+        instructionBox.innerHTML = `
+            <b>請選擇要輸入的文本框</b>
+            <p>點擊任何文本框作為語音輸入目標</p>
+            <button id="cancel-target-selection" class="btn btn-sm btn-outline-danger mt-2">
+                取消選擇
+            </button>
+        `;
         document.body.appendChild(instructionBox);
+        
+        // 添加取消按鈕事件
+        document.getElementById('cancel-target-selection').addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeTargetSelector();
+            // 如果是從錄音開始進來的，停止錄音
+            if (voiceSystem.isRecording) {
+                stopRecording();
+            }
+        });
         
         // 標記所有可用的文本框
         const textareas = document.querySelectorAll('textarea');
+        const clickHandlers = []; // 保存所有處理函數的引用以便後續移除
+        
         textareas.forEach(textarea => {
             textarea.classList.add('potential-target');
             textarea.style.border = '2px dashed #ffc107';
@@ -645,19 +670,47 @@ document.addEventListener('DOMContentLoaded', function() {
             // 為每個文本框添加一次性點擊事件
             const clickHandler = function() {
                 selectTarget(textarea);
-                // 清理
-                textareas.forEach(t => {
-                    t.classList.remove('potential-target');
-                    t.style.border = '';
-                    t.removeEventListener('click', clickHandler);
-                });
-                document.body.removeChild(ui.overlayElement);
-                document.body.removeChild(instructionBox);
-                ui.overlayElement = null;
+                closeTargetSelector();
             };
             
+            // 保存處理函數引用
+            clickHandlers.push({ element: textarea, handler: clickHandler });
             textarea.addEventListener('click', clickHandler);
         });
+        
+        // 保存點擊處理函數引用以便關閉時使用
+        ui.activeClickHandlers = clickHandlers;
+    }
+    
+    // 關閉目標選擇器
+    function closeTargetSelector() {
+        // 移除覆蓋層
+        if (ui.overlayElement && ui.overlayElement.parentNode) {
+            document.body.removeChild(ui.overlayElement);
+            ui.overlayElement = null;
+        }
+        
+        // 移除提示框
+        const instructionBox = document.getElementById('target-selector-instruction');
+        if (instructionBox && instructionBox.parentNode) {
+            document.body.removeChild(instructionBox);
+        }
+        
+        // 移除所有文本框的高亮和事件監聽器
+        if (ui.activeClickHandlers && ui.activeClickHandlers.length) {
+            ui.activeClickHandlers.forEach(item => {
+                item.element.classList.remove('potential-target');
+                item.element.style.border = '';
+                item.element.removeEventListener('click', item.handler);
+            });
+            ui.activeClickHandlers = [];
+        } else {
+            // 備用清理方法
+            document.querySelectorAll('.potential-target').forEach(el => {
+                el.classList.remove('potential-target');
+                el.style.border = '';
+            });
+        }
     }
     
     function selectTarget(target) {
