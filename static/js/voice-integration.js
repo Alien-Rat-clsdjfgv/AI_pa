@@ -17,71 +17,13 @@ class MedicalVoiceSystem {
         this.interimResult = '';
         this.currentLanguage = 'zh-TW'; // 預設繁體中文
         
-        // 支援的語言與文化背景設定
-        this.supportedLanguages = {
-            'zh-TW': { 
-                name: '繁體中文 (台灣)',
-                culturalContext: 'taiwanese',
-                symptomTerms: {
-                    fever: ['發燒', '發熱'],
-                    cough: ['咳嗽', '久咳'],
-                    headache: ['頭痛', '頭痠'],
-                    nausea: ['噁心', '想吐'],
-                    vomit: ['嘔吐', '吐']
-                },
-                culturalPhrases: {
-                    greetings: ['您好', '早安', '午安', '晚安'],
-                    polite: ['請問', '麻煩', '不好意思', '謝謝'],
-                    familyTerms: ['阿公', '阿嬤', '家人', '親戚']
-                },
-                culturalContextRules: {
-                    formalAddressing: true,  // 使用尊稱
-                    indirectExpression: true, // 間接表達不適
-                    communityReference: true  // 提及家庭/群體
-                }
-            },
-            'zh-CN': { 
-                name: '简体中文 (中国大陆)',
-                culturalContext: 'mainland',
-                symptomTerms: {
-                    fever: ['发烧', '发热'],
-                    cough: ['咳嗽', '干咳', '湿咳'],
-                    headache: ['头痛', '头晕'],
-                    nausea: ['恶心', '想吐'],
-                    vomit: ['呕吐', '吐了']
-                },
-                culturalPhrases: {
-                    greetings: ['你好', '早上好', '下午好', '晚上好'],
-                    polite: ['请问', '麻烦', '不好意思', '谢谢'],
-                    familyTerms: ['爷爷', '奶奶', '家里人', '亲戚']
-                },
-                culturalContextRules: {
-                    formalAddressing: true,
-                    indirectExpression: true,
-                    communityReference: true
-                }
-            },
-            'en-US': { 
-                name: 'English (US)',
-                culturalContext: 'western',
-                symptomTerms: {
-                    fever: ['fever', 'temperature', 'hot'],
-                    cough: ['cough', 'coughing'],
-                    headache: ['headache', 'migraine'],
-                    nausea: ['nausea', 'queasy'],
-                    vomit: ['vomit', 'throw up', 'vomiting']
-                },
-                culturalPhrases: {
-                    greetings: ['hello', 'hi', 'good morning', 'good afternoon'],
-                    polite: ['please', 'excuse me', 'thank you', 'sorry'],
-                    familyTerms: ['grandfather', 'grandmother', 'family', 'relatives']
-                },
-                culturalContextRules: {
-                    formalAddressing: false, // 較少使用尊稱
-                    indirectExpression: false, // 直接表達症狀
-                    communityReference: false // 較少提及家庭/群體
-                }
-            }
+        // 症狀關鍵詞（僅支援繁體中文）
+        this.symptomTerms = {
+            fever: ['發燒', '發熱'],
+            cough: ['咳嗽', '久咳'],
+            headache: ['頭痛', '頭痠'],
+            nausea: ['噁心', '想吐'],
+            vomit: ['嘔吐', '吐']
         };
         
         // 參考對話分析器
@@ -138,51 +80,7 @@ class MedicalVoiceSystem {
     /**
      * 設置語音識別實例
      */
-    setLanguage(langCode) {
-        if (this.supportedLanguages[langCode]) {
-            console.log(`切換語言為: ${this.supportedLanguages[langCode].name}`);
-            this.currentLanguage = langCode;
-            
-            // 如果語音識別已初始化，則更新語言設定
-            if (this.recognition) {
-                this.recognition.lang = langCode;
-            }
-            
-            // 如果有連接到分析器，則傳遞文化背景設定
-            if (this.analyzer) {
-                this.analyzer.setCulturalContext(
-                    this.supportedLanguages[langCode].culturalContext,
-                    this.supportedLanguages[langCode].symptomTerms,
-                    this.supportedLanguages[langCode].culturalContextRules
-                );
-                console.log(`已更新文化背景設定: ${this.supportedLanguages[langCode].culturalContext}`);
-            }
-            
-            // 顯示設定已更新的通知
-            const notification = document.createElement('div');
-            notification.className = 'toast show position-fixed';
-            notification.style.bottom = '90px';
-            notification.style.right = '20px';
-            notification.style.zIndex = '1060';
-            notification.innerHTML = `
-                <div class="toast-header">
-                    <strong class="me-auto">語言設定已更新</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-                <div class="toast-body">
-                    已切換至 ${this.supportedLanguages[langCode].name}
-                </div>
-            `;
-            document.body.appendChild(notification);
-            
-            // 3秒後自動移除通知
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        } else {
-            console.error(`不支援的語言: ${langCode}`);
-        }
-    }
+    // 此方法已刪除，僅保留繁體中文功能
     
     setupRecognition() {
         this.recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -616,44 +514,10 @@ class MedicalVoiceSystem {
     createGlobalVoiceControls() {
         // 創建浮動按鈕容器
         const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'position-fixed d-flex flex-column align-items-end';
+        buttonContainer.className = 'position-fixed';
         buttonContainer.style.bottom = '20px';
         buttonContainer.style.right = '20px';
         buttonContainer.style.zIndex = '1040';
-        
-        // 創建語言選擇器容器
-        const langContainer = document.createElement('div');
-        langContainer.className = 'language-selector mb-2 d-flex';
-        langContainer.style.borderRadius = '20px';
-        langContainer.style.background = 'rgba(0,0,0,0.1)';
-        langContainer.style.padding = '4px';
-        
-        // 創建語言切換按鈕
-        Object.keys(this.supportedLanguages).forEach(langCode => {
-            const langInfo = this.supportedLanguages[langCode];
-            const langButton = document.createElement('button');
-            langButton.className = `btn btn-sm ${this.currentLanguage === langCode ? 'btn-primary' : 'btn-outline-secondary'}`;
-            langButton.textContent = langCode.split('-')[0].toUpperCase();
-            langButton.title = langInfo.name;
-            langButton.style.marginRight = '4px';
-            langButton.style.borderRadius = '18px';
-            langButton.setAttribute('data-lang', langCode);
-            
-            langButton.addEventListener('click', () => {
-                this.setLanguage(langCode);
-                
-                // 更新所有語言按鈕樣式
-                document.querySelectorAll('[data-lang]').forEach(btn => {
-                    if (btn.getAttribute('data-lang') === langCode) {
-                        btn.className = 'btn btn-sm btn-primary';
-                    } else {
-                        btn.className = 'btn btn-sm btn-outline-secondary';
-                    }
-                });
-            });
-            
-            langContainer.appendChild(langButton);
-        });
         
         // 主語音按鈕
         const mainButton = document.createElement('button');
@@ -665,7 +529,6 @@ class MedicalVoiceSystem {
         mainButton.title = '開始智能語音輸入';
         mainButton.innerHTML = '<i class="fas fa-microphone fa-lg"></i>';
         
-        buttonContainer.appendChild(langContainer);
         buttonContainer.appendChild(mainButton);
         document.body.appendChild(buttonContainer);
         
