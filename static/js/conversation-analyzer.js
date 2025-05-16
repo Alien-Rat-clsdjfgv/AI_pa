@@ -619,8 +619,8 @@ class ConversationAnalyzer {
         const patientSpeeches = this.conversations.filter(item => item.speaker === 'patient');
         const doctorSpeeches = this.conversations.filter(item => item.speaker === 'doctor');
         
-        // 處理病人說的話 - 優先檢查主訴和伴隨症狀
-        for (const speech of patientSpeeches) {
+        // 從所有對話中提取症狀（無論是醫生還是病人提到的）
+        for (const speech of this.conversations) {
             const text = speech.text.toLowerCase();
             
             // 提取特定症狀
