@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // 不再需要臨時語音按鈕，新的voice-system.js會自動創建
+    // 現在使用 mobile-voice.js 作為唯一語音輸入系統
 
     // 定義各專科常見症狀和相關項目
     const specialtyRelatedItems = {
@@ -306,13 +306,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('初始化完成：使用默認專科(內科)更新按鈕');
         }
         
-        // 確保語音輸入功能正常工作
-        // 在更新按鈕後，發送一個事件，通知新的語音系統
-        setTimeout(function() {
-            console.log('檢測到按鈕更新，重新初始化語音輸入系統...');
-            // 發送按鈕更新事件，新的語音系統會接收此事件
-            document.dispatchEvent(new CustomEvent('specialty-buttons-updated'));
-        }, 500);
+        // 移除舊的語音輸入系統通知代碼，避免干擾新系統
+        // 新系統不需要專門的事件通知
     }
 
     // 實驗室檢查規模按鈕
