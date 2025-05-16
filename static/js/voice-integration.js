@@ -74,11 +74,25 @@ class MedicalVoiceSystem {
     setupRecognition() {
         this.recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         
-        // 配置參數
+        // 配置參數 - 調整以提高連續對話的效能
         this.recognition.continuous = true;     // 持續聆聽
         this.recognition.interimResults = true; // 顯示臨時結果
         this.recognition.maxAlternatives = 1;   // 返回最佳結果
         this.recognition.lang = this.currentLanguage; // 語言設定
+        
+        // 以下設定優化連續對話功能
+        if (this.recognition.continuous === undefined) {
+            this.recognition.continuous = true;
+        }
+        
+        // 避免太快結束識別
+        this.recognition.interimResults = true;
+        
+        // 增加停頓靈敏度 (如果平台支援)
+        if (typeof this.recognition.speechRecognitionList !== 'undefined') {
+            const speechRecognitionList = new SpeechGrammarList();
+            this.recognition.grammars = speechRecognitionList;
+        }
         
         // 處理事件
         this.recognition.onstart = () => {
@@ -91,14 +105,28 @@ class MedicalVoiceSystem {
         };
         
         this.recognition.onend = () => {
+            console.log('語音識別結束事件觸發');
+            
+            // 如果需要保持連續識別，自動重啟
+            if (this.autoRestart) {
+                console.log('自動重啟語音識別');
+                try {
+                    // 延遲100毫秒後重啟，避免過快重啟造成的問題
+                    setTimeout(() => {
+                        if (this.autoRestart) { // 再次檢查，以防在延遲期間被取消
+                            this.recognition.start();
+                        }
+                    }, 100);
+                    return; // 不更新狀態，因為我們立即重啟了
+                } catch (error) {
+                    console.error('自動重啟語音識別失敗:', error);
+                }
+            }
+            
+            // 只有真正結束時才更新狀態
             this.isListening = false;
             this.updateStatusUI('ready');
             console.log('語音識別停止');
-            
-            // 如果當前有設置欄位，自動重新啟動
-            if (this.currentField && this.autoRestart) {
-                this.recognition.start();
-            }
         };
         
         this.recognition.onresult = (event) => {
@@ -510,10 +538,64 @@ class MedicalVoiceSystem {
             this.analyzer.toggleVisibility(true);
         }
         
+        // 創建或更新語音狀態提示
+        this.createOrUpdateSmartModeIndicator();
+        
         // 開始語音識別
         this.startVoiceInput();
         
         console.log('啟動智能語音模式');
+    }
+    
+    /**
+     * 創建智能模式指示器 - 顯示正在聽取對話的提示
+     */
+    createOrUpdateSmartModeIndicator() {
+        // 創建提示框
+        if (!document.getElementById('smart-mode-indicator')) {
+            const indicator = document.createElement('div');
+            indicator.id = 'smart-mode-indicator';
+            indicator.className = 'alert alert-info position-fixed d-flex align-items-center';
+            indicator.style.bottom = '85px';
+            indicator.style.left = '20px';
+            indicator.style.zIndex = '1040';
+            indicator.style.maxWidth = '80%';
+            indicator.style.opacity = '0.9';
+            indicator.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+            
+            indicator.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="me-2 position-relative" style="width:24px;height:24px;">
+                        <span class="position-absolute top-0 start-0 bg-danger rounded-circle" 
+                              style="width:8px;height:8px;animation:pulse 1.5s infinite;"></span>
+                        <i class="fas fa-microphone text-primary fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold">醫療對話分析進行中</div>
+                        <div class="small">系統正在聆聽並自動分類您的對話內容</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close ms-auto" id="close-smart-indicator"></button>
+            `;
+            
+            // 添加樣式
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes pulse {
+                    0% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.5); opacity: 0.7; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(indicator);
+            
+            // 關閉按鈕事件
+            document.getElementById('close-smart-indicator').addEventListener('click', () => {
+                indicator.remove();
+            });
+        }
     }
     
     /**
