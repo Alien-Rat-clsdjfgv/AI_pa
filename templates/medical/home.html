@@ -1,7 +1,7 @@
 {% extends 'layout.html' %}
 
 {% block content %}
-<!-- 語音輸入現在由 mobile-voice.js 提供 -->
+<!-- 語音輸入功能已完全移除 -->
 <div class="container py-4">
     <div class="row mb-4">
         <div class="col-12">
@@ -995,20 +995,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- 語音功能已移除 -->
 
-<!-- 與按鈕系統的集成 -->
+<!-- 專科按鈕交互系統 -->
 <script>
-// 監聽專科變更，通知語音系統
 document.addEventListener('DOMContentLoaded', function() {
-    // 當專科變更時通知語音系統
+    // 專科選擇變更監聽
     const specialtySelect = document.getElementById('specialty');
     if (specialtySelect) {
         specialtySelect.addEventListener('change', function() {
-            // 如果語音系統已加載，通知按鈕更新
-            if (window.voiceSystem) {
-                console.log('專科變更: ', this.value);
-                // 發送按鈕更新事件
-                document.dispatchEvent(new CustomEvent('specialty-buttons-updated'));
-            }
+            console.log('專科變更: ', this.value);
         });
     }
     
