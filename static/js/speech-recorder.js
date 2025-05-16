@@ -1,5 +1,6 @@
 /**
  * 完整語音記錄器 - 記錄所有對話內容，包含標點符號
+ * 優化版本：提供更完整的對話記錄體驗
  */
 
 class SpeechRecorder {
@@ -10,9 +11,16 @@ class SpeechRecorder {
         // UI元素參考
         this.container = null;
         this.dialogList = null;
+        this.textArea = null;
         
         // 目前是否在記錄中
         this.isRecording = false;
+        
+        // 完整記錄的文本內容
+        this.fullText = '';
+        
+        // 用於去重的最後記錄內容
+        this.lastRecordedText = '';
     }
     
     /**
@@ -24,6 +32,9 @@ class SpeechRecorder {
         
         // 設置事件監聽器
         this.setupListeners();
+        
+        // 獲取文本區域參考
+        this.textArea = document.getElementById('full-speech-record');
         
         console.log('完整語音記錄器初始化完成');
     }
@@ -49,24 +60,32 @@ class SpeechRecorder {
         this.container.style.maxHeight = '60vh';
         this.container.style.zIndex = '1039';
         
-        // 創建卡片內容
+        // 創建卡片內容 - 使用完整的文本區域代替列表
         this.container.innerHTML = `
             <div class="card shadow">
                 <div class="card-header py-2 bg-dark d-flex justify-content-between align-items-center">
                     <small class="fw-bold text-light">完整對話記錄 (含標點符號)</small>
                     <div>
-                        <button type="button" class="btn btn-outline-light btn-sm" id="clear-dialog-btn">
+                        <button type="button" class="btn btn-outline-light btn-sm" id="copy-dialog-btn" title="複製">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-light btn-sm" id="clear-dialog-btn" title="清除">
                             <i class="fas fa-eraser"></i>
                         </button>
                         <button type="button" class="btn-close btn-close-white btn-sm" id="close-recorder-btn"></button>
                     </div>
                 </div>
-                <div class="card-body p-0" style="max-height: 50vh; overflow-y: auto;">
-                    <div id="speech-record-list" class="list-group list-group-flush"></div>
+                <div class="card-body p-2">
+                    <textarea id="full-speech-record" class="form-control" 
+                        style="height: 300px; resize: none; font-size: 14px;" 
+                        readonly></textarea>
                 </div>
-                <div class="card-footer py-1 bg-dark d-flex justify-content-between">
-                    <small class="text-light">自動記錄語音內容 (包含標點符號)</small>
-                    <span class="badge bg-danger" id="recording-status">錄製中</span>
+                <div class="card-footer py-1 bg-dark d-flex justify-content-between align-items-center">
+                    <small class="text-light">自動記錄完整對話 (包含標點符號)</small>
+                    <div>
+                        <span class="badge bg-danger me-2" id="recording-status">錄製中</span>
+                        <small class="text-light" id="speech-counter">0 字</small>
+                    </div>
                 </div>
             </div>
         `;
@@ -122,14 +141,45 @@ class SpeechRecorder {
             this.clearDialogHistory();
         });
         
-        // 監聽語音識別結果
+        // 複製按鈕事件
+        document.getElementById('copy-dialog-btn').addEventListener('click', () => {
+            this.copyToClipboard();
+        });
+        
+        // 監聽語音識別結果 - 對於語音識別，直接從 voice-integration.js 收到事件
         document.addEventListener('voice-recognition-result', (event) => {
             if (event.detail && event.detail.text) {
                 const text = event.detail.text;
                 const speaker = event.detail.speaker || '未知';
-                this.addDialogEntry(speaker, text);
+                
+                // 確保不重複添加最後一句
+                if (this.dialogHistory.length === 0 || 
+                    this.dialogHistory[this.dialogHistory.length - 1].text !== text) {
+                    this.addDialogEntry(speaker, text);
+                }
             }
         });
+    }
+    
+    /**
+     * 複製對話內容到剪貼板
+     */
+    copyToClipboard() {
+        if (!this.textArea || !this.fullText) return;
+        
+        try {
+            // 複製到剪貼板
+            navigator.clipboard.writeText(this.fullText).then(() => {
+                alert('對話記錄已複製到剪貼板');
+            }).catch(err => {
+                console.error('複製失敗：', err);
+                // 備用方案
+                this.textArea.select();
+                document.execCommand('copy');
+            });
+        } catch (err) {
+            console.error('複製失敗：', err);
+        }
     }
     
     /**
@@ -159,54 +209,58 @@ class SpeechRecorder {
         // 如果沒有在記錄則跳過
         if (!this.isRecording) return;
         
-        // 暫時忽略說話者，全部顯示為同一樣式
-        // 根據要求先忽略說話者選擇
-        const displayName = '語音記錄';
-        const bgColor = 'bg-dark bg-opacity-10';
-        const textColor = 'text-dark';
+        // 獲取當前時間
+        const currentTime = new Date();
+        const timeStr = this.formatTime(currentTime);
         
         // 創建條目
         const entry = {
             speaker: 'unknown',  // 先忽略說話者
             text: text,
-            timestamp: new Date()
+            timestamp: currentTime
         };
         
         // 添加到歷史記錄
         this.dialogHistory.push(entry);
         
-        // 更新UI
-        this.updateDialogUI();
+        // 更新完整文本
+        if (this.fullText.length > 0) {
+            this.fullText += '\n\n';
+        }
+        this.fullText += `[${timeStr}] ${text}`;
+        
+        // 更新文本區域
+        this.updateTextArea();
+        
+        // 更新字數計數器
+        this.updateCounter();
     }
     
     /**
-     * 更新對話UI
+     * 更新文本區域
      */
-    updateDialogUI() {
-        // 清空當前列表
-        this.dialogList.innerHTML = '';
+    updateTextArea() {
+        // 獲取文本區域
+        const textArea = document.getElementById('full-speech-record');
+        if (!textArea) return;
         
-        // 添加所有對話 - 忽略說話者區分
-        this.dialogHistory.forEach(entry => {
-            const displayName = '語音記錄';
-            const bgColor = 'bg-dark bg-opacity-10';
-            const textColor = 'text-dark';
-            
-            const listItem = document.createElement('div');
-            listItem.className = `list-group-item ${bgColor} border-0`;
-            listItem.innerHTML = `
-                <div class="d-flex w-100 justify-content-between">
-                    <small class="${textColor} fw-bold">${displayName}</small>
-                    <small class="text-muted">${this.formatTime(entry.timestamp)}</small>
-                </div>
-                <p class="mb-1">${entry.text}</p>
-            `;
-            
-            this.dialogList.appendChild(listItem);
-        });
+        // 設置文本內容
+        textArea.value = this.fullText;
         
         // 滾動到底部
-        this.dialogList.scrollTop = this.dialogList.scrollHeight;
+        textArea.scrollTop = textArea.scrollHeight;
+    }
+    
+    /**
+     * 更新字數計數器
+     */
+    updateCounter() {
+        const counter = document.getElementById('speech-counter');
+        if (!counter) return;
+        
+        // 計算字數 (中文每個字算一個字)
+        const charCount = this.fullText.length;
+        counter.textContent = `${charCount} 字`;
     }
     
     /**
@@ -214,7 +268,9 @@ class SpeechRecorder {
      */
     clearDialogHistory() {
         this.dialogHistory = [];
-        this.updateDialogUI();
+        this.fullText = '';
+        this.updateTextArea();
+        this.updateCounter();
         console.log('清空對話歷史');
     }
     

@@ -117,16 +117,11 @@ class VoiceIntegration {
                 if (results[i].isFinal) {
                     finalTranscript += transcript;
                     
-                    // 使用最高信心度的結果
+                    // 使用最高信心度的結果，但降低閾值以接受更多結果
                     const confidence = results[i][0].confidence;
-                    // 降低信心閾值，接受更多語音結果
-                    if (confidence > 0.3) {
+                    if (confidence > 0.2) { // 進一步降低閾值，確保更多語句被記錄
+                        // 處理正式結果
                         this.processResult(transcript, confidence);
-                        
-                        // 直接添加到完整記錄中，確保每個語句都被記錄
-                        if (window.speechRecorder) {
-                            window.speechRecorder.addDialogEntry('unknown', transcript);
-                        }
                     } else {
                         console.log(`結果信心度過低 (${Math.round(confidence * 100)}%): ${transcript}`);
                     }
