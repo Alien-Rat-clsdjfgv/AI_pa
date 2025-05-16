@@ -1,775 +1,478 @@
 /**
- * 智能醫療語音識別與自動歸類系統
- * 
- * 功能：
- * 1. 啟用語音輸入，轉換為文字
- * 2. 連接到對話分析器，將語音內容歸類到對應欄位
- * 3. 支持手動指定當前說話者（醫生或病人）
- * 4. 適配移動設備操作
+ * 集成語音識別系統 - 專門為繁體中文醫療對話優化
+ * 整合了說話者選擇器和對話分析器，完整記錄所有對話內容
  */
 
-class MedicalVoiceSystem {
+class VoiceIntegration {
     constructor() {
-        // 語音識別
+        // 語音識別 API
         this.recognition = null;
+        
+        // 當前語音識別輸入目標欄位
+        this.targetField = null;
+        
+        // 是否正在聆聽
         this.isListening = false;
-        this.currentField = null;
+        
+        // 當前狀態
+        this.status = 'inactive'; // inactive, listening, processing
+        
+        // 存儲中間結果
         this.interimResult = '';
-        this.currentLanguage = 'zh-TW'; // 預設繁體中文
         
-        // 症狀關鍵詞（僅支援繁體中文）
-        this.symptomTerms = {
-            fever: ['發燒', '發熱'],
-            cough: ['咳嗽', '久咳'],
-            headache: ['頭痛', '頭痠'],
-            nausea: ['噁心', '想吐'],
-            vomit: ['嘔吐', '吐']
-        };
+        // 信心閾值 (百分比)
+        this.confidenceThreshold = 0.6;
         
-        // 參考對話分析器
-        this.analyzer = null;
-        
-        // 語音按鈕和指示器
-        this.voiceButtons = {};
+        // 目標元素參考
         this.statusIndicator = null;
+        this.voiceButton = null;
         
-        // 設置常量
-        this.BUTTON_SIZE = 48; // 語音按鈕大小(px)
-        this.STATUS_COLORS = {
-            ready: '#28a745',    // 綠色
-            listening: '#dc3545', // 紅色
-            processing: '#ffc107', // 黃色
-            error: '#6c757d'      // 灰色
-        };
+        // 支援標點符號
+        this.supportPunctuation = true;
     }
     
     /**
      * 初始化語音系統
      */
     initialize() {
-        // 檢查瀏覽器兼容性
-        
-        // 初始化說話者選擇器
-        if (window.speakerSelector) {
-            window.speakerSelector.initialize();
-        }
+        // 檢查瀏覽器支援
         if (!this.checkBrowserSupport()) {
-            console.error('您的瀏覽器不支持語音識別功能');
-            return false;
+            console.error('此瀏覽器不支援語音識別');
+            return;
         }
         
         // 創建語音識別實例
-        this.setupRecognition();
+        this.createRecognition();
         
-        // 添加語音按鈕到表單欄位
-        this.addVoiceButtonsToFields();
+        // 設置事件監聽器
+        this.setupEvents();
         
-        // 創建全局語音控制按鈕
-        this.createGlobalVoiceControls();
-        
-        // 初始化對話分析器連接
-        this.connectToAnalyzer();
+        // 創建UI元素
+        this.createUI();
         
         console.log('醫療語音系統初始化完成');
-        return true;
     }
     
     /**
-     * 檢查瀏覽器是否支持語音識別
+     * 檢查瀏覽器支援
+     * @returns {boolean} 是否支援
      */
     checkBrowserSupport() {
-        window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        return !!window.SpeechRecognition;
+        return 'webkitSpeechRecognition' in window || 
+               'SpeechRecognition' in window;
     }
     
     /**
-     * 設置語音識別實例
+     * 創建語音識別實例
      */
-    // 此方法已刪除，僅保留繁體中文功能
+    createRecognition() {
+        // 獲取適當的語音識別API
+        const SpeechRecognition = window.SpeechRecognition || 
+                                 window.webkitSpeechRecognition;
+        
+        // 創建實例
+        this.recognition = new SpeechRecognition();
+        
+        // 設置參數
+        this.recognition.continuous = false;     // 不連續聆聽
+        this.recognition.interimResults = true;  // 獲取中間結果
+        this.recognition.maxAlternatives = 3;    // 最多3個替代結果
+        
+        // 設定僅使用繁體中文
+        this.recognition.lang = 'zh-TW';         // 繁體中文
+    }
     
-    setupRecognition() {
-        this.recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        
-        // 配置參數 - 調整以提高連續對話的效能
-        this.recognition.continuous = true;     // 持續聆聽
-        this.recognition.interimResults = true; // 顯示臨時結果
-        this.recognition.maxAlternatives = 1;   // 返回最佳結果
-        this.recognition.lang = this.currentLanguage; // 語言設定
-        
-        // 以下設定優化連續對話功能
-        if (this.recognition.continuous === undefined) {
-            this.recognition.continuous = true;
-        }
-        
-        // 避免太快結束識別
-        this.recognition.interimResults = true;
-        
-        // 增加停頓靈敏度 (如果平台支援)
-        if (typeof this.recognition.speechRecognitionList !== 'undefined') {
-            const speechRecognitionList = new SpeechGrammarList();
-            this.recognition.grammars = speechRecognitionList;
-        }
-        
-        // 處理事件
+    /**
+     * 設置事件監聽器
+     */
+    setupEvents() {
+        // 語音識別開始事件
         this.recognition.onstart = () => {
             this.isListening = true;
-            this.updateStatusUI('listening');
-            console.log('語音識別開始');
+            this.status = 'listening';
+            this.updateStatusUI();
             
-            // 通知對話分析器開始工作
-            if (this.analyzer) this.analyzer.start();
-        };
-        
-        this.recognition.onend = () => {
-            console.log('語音識別結束事件觸發');
+            // 發送語音識別開始事件
+            this.dispatchEvent('voice-recognition-start');
             
-            // 如果需要保持連續識別，自動重啟
-            if (this.autoRestart) {
-                console.log('自動重啟語音識別');
-                try {
-                    // 延遲100毫秒後重啟，避免過快重啟造成的問題
-                    setTimeout(() => {
-                        if (this.autoRestart) { // 再次檢查，以防在延遲期間被取消
-                            this.recognition.start();
-                        }
-                    }, 100);
-                    return; // 不更新狀態，因為我們立即重啟了
-                } catch (error) {
-                    console.error('自動重啟語音識別失敗:', error);
-                }
+            // 通知對話記錄器開始記錄
+            if (window.speechRecorder) {
+                window.speechRecorder.startRecording();
             }
             
-            // 只有真正結束時才更新狀態
-            this.isListening = false;
-            this.updateStatusUI('ready');
-            console.log('語音識別停止');
+            console.log('語音識別開始');
         };
         
+        // 語音識別結果事件
         this.recognition.onresult = (event) => {
-            let interimTranscript = '';
+            // 獲取結果
+            let results = event.results;
             let finalTranscript = '';
-
+            let interimTranscript = '';
+            
             // 處理所有結果
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                const transcript = event.results[i][0].transcript;
+            for (let i = event.resultIndex; i < results.length; i++) {
+                const transcript = results[i][0].transcript;
                 
-                if (event.results[i].isFinal) {
+                if (results[i].isFinal) {
                     finalTranscript += transcript;
-                    console.log('獲得最終結果: ' + transcript);
                     
-                    // 獲取當前說話者身份
-                    let currentSpeaker = null;
-                    if (window.speakerSelector) {
-                        currentSpeaker = window.speakerSelector.getCurrentSpeaker();
-                    }
-                    
-                    // 發送事件給對話分析器進行自動分析，包含說話者資訊
-                    const resultEvent = new CustomEvent('voice-recognition-result', {
-                        detail: {
-                            text: transcript,
-                            isFinal: true,
-                            speaker: currentSpeaker  // 明確指定說話者身份
-                        }
-                    });
-                    document.dispatchEvent(resultEvent);
-                    
-                    // 如果直接設置了欄位，也更新到該欄位
-                    if (this.currentField) {
-                        const textarea = document.getElementById(this.currentField);
-                        if (textarea) {
-                            if (textarea.value) {
-                                textarea.value += ' ' + transcript;
-                            } else {
-                                textarea.value = transcript;
-                            }
-                        }
+                    // 使用最高信心度的結果
+                    const confidence = results[i][0].confidence;
+                    if (confidence > this.confidenceThreshold) {
+                        this.processResult(transcript, confidence);
+                    } else {
+                        console.log(`結果信心度過低 (${Math.round(confidence * 100)}%): ${transcript}`);
                     }
                 } else {
                     interimTranscript += transcript;
                 }
             }
             
-            // 更新臨時結果
-            this.interimResult = interimTranscript;
-            
-            // 更新指示器
+            // 更新中間結果
             if (interimTranscript) {
-                this.updateStatusUI('processing', interimTranscript);
+                this.interimResult = interimTranscript;
+                this.showInterimResult(interimTranscript);
+            }
+            
+            // 處理最終結果
+            if (finalTranscript) {
+                this.interimResult = '';
+                console.log(`獲得最終結果: ${finalTranscript}`);
             }
         };
         
-        this.recognition.onerror = (event) => {
-            console.error('語音識別錯誤: ' + event.error);
-            this.updateStatusUI('error', event.error);
+        // 語音識別結束事件
+        this.recognition.onend = () => {
+            this.isListening = false;
+            this.status = 'inactive';
+            this.updateStatusUI();
             
-            // 重大錯誤時通知頁面
-            if (['network', 'service-not-allowed', 'aborted'].includes(event.error)) {
-                this.showVoiceError(event.error);
+            // 發送語音識別結束事件
+            this.dispatchEvent('voice-recognition-end');
+            
+            console.log('語音識別結束事件觸發');
+        };
+        
+        // 語音識別錯誤事件
+        this.recognition.onerror = (event) => {
+            let errorMessage = '';
+            
+            switch (event.error) {
+                case 'no-speech':
+                    errorMessage = '未檢測到語音';
+                    break;
+                case 'aborted':
+                    errorMessage = '語音識別已中止';
+                    break;
+                case 'audio-capture':
+                    errorMessage = '無法捕獲音訊';
+                    break;
+                case 'network':
+                    errorMessage = '網絡錯誤';
+                    break;
+                case 'not-allowed':
+                    errorMessage = '未獲得麥克風權限';
+                    break;
+                case 'service-not-allowed':
+                    errorMessage = '服務不可用';
+                    break;
+                case 'bad-grammar':
+                    errorMessage = '語法錯誤';
+                    break;
+                case 'language-not-supported':
+                    errorMessage = '語言不支援';
+                    break;
+                default:
+                    errorMessage = '未知錯誤';
             }
+            
+            console.error(`語音識別錯誤: ${errorMessage} (${event.error})`);
+            
+            // 重置狀態
+            this.isListening = false;
+            this.status = 'inactive';
+            this.updateStatusUI();
         };
     }
     
     /**
-     * 添加語音按鈕到所有相關表單欄位
+     * 創建UI元素
      */
-    addVoiceButtonsToFields() {
-        // 表單欄位映射到對話分析器類別
-        const fieldMapping = {
-            'chief_complaint': 'chiefComplaint',
-            'history_present_illness': 'presentIllness',
-            'accompanied_symptoms': 'accompaniedSymptoms',
-            'past_medical_history': 'pastMedicalHistory',
-            'medications': 'medications',
-            'allergies': 'allergies',
-            'family_history': 'familyHistory',
-            'social_history': 'socialHistory',
-            'physical_examination': 'physicalExam',
-            'vital_signs': 'vitalSigns'
-        };
+    createUI() {
+        // 添加語音按鈕到所有文本輸入欄位
+        this.attachVoiceButtonsToFields();
+    }
+    
+    /**
+     * 為所有文本輸入欄位添加語音按鈕
+     */
+    attachVoiceButtonsToFields() {
+        // 獲取所有輸入欄位
+        const textInputs = document.querySelectorAll('input[type="text"], textarea');
         
         // 為每個欄位添加語音按鈕
-        for (const [fieldId, category] of Object.entries(fieldMapping)) {
-            const field = document.getElementById(fieldId);
-            if (field) {
-                // 創建語音按鈕
-                const button = this.createVoiceButton(fieldId, category);
-                
-                // 將按鈕添加到欄位容器中
-                const container = field.parentElement;
-                
-                // 檢查欄位下是否已存在按鈕組
-                let buttonGroup = container.querySelector('.voice-button-group');
-                if (!buttonGroup) {
-                    buttonGroup = document.createElement('div');
-                    buttonGroup.className = 'voice-button-group d-flex mt-1';
-                    container.appendChild(buttonGroup);
-                }
-                
-                buttonGroup.appendChild(button);
-                
-                // 存儲按鈕引用
-                this.voiceButtons[fieldId] = button;
+        textInputs.forEach((input) => {
+            // 檢查是否已有語音按鈕
+            const fieldId = input.id;
+            const container = input.parentElement;
+            
+            if (!container || container.querySelector('.voice-btn')) {
+                return;
             }
+            
+            // 創建語音按鈕
+            const voiceBtn = document.createElement('button');
+            voiceBtn.type = 'button';
+            voiceBtn.className = 'btn btn-outline-secondary voice-btn';
+            voiceBtn.setAttribute('data-target', fieldId);
+            voiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            voiceBtn.title = '語音輸入';
+            
+            // 設置點擊事件
+            voiceBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.toggleListening(fieldId);
+            });
+            
+            // 根據輸入類型確定位置和樣式
+            if (input.tagName.toLowerCase() === 'textarea') {
+                // 文本區域 - 添加在外部容器的右下角
+                voiceBtn.classList.add('position-absolute');
+                voiceBtn.style.bottom = '10px';
+                voiceBtn.style.right = '10px';
+                voiceBtn.style.zIndex = '10';
+                
+                if (container.style.position !== 'relative') {
+                    container.style.position = 'relative';
+                }
+            } else {
+                // 普通輸入框 - 嘗試添加在輸入組的末尾
+                const inputGroup = container.classList.contains('input-group') ? 
+                    container : container.querySelector('.input-group');
+                
+                if (inputGroup) {
+                    // 已存在輸入組，添加按鈕到末尾
+                    voiceBtn.classList.add('input-group-text');
+                    inputGroup.appendChild(voiceBtn);
+                } else {
+                    // 沒有輸入組，添加在右側
+                    voiceBtn.classList.add('position-absolute');
+                    voiceBtn.style.top = '50%';
+                    voiceBtn.style.right = '10px';
+                    voiceBtn.style.transform = 'translateY(-50%)';
+                    voiceBtn.style.zIndex = '10';
+                    
+                    if (container.style.position !== 'relative') {
+                        container.style.position = 'relative';
+                    }
+                    
+                    container.appendChild(voiceBtn);
+                }
+            }
+            
+            // 添加指示器
+            const statusIndicator = document.createElement('span');
+            statusIndicator.className = 'voice-status d-none position-absolute';
+            statusIndicator.style.width = '10px';
+            statusIndicator.style.height = '10px';
+            statusIndicator.style.borderRadius = '50%';
+            statusIndicator.style.backgroundColor = '#ccc';
+            statusIndicator.style.top = '5px';
+            statusIndicator.style.right = '5px';
+            
+            voiceBtn.style.position = 'relative';
+            voiceBtn.appendChild(statusIndicator);
+        });
+    }
+    
+    /**
+     * 切換聆聽狀態
+     * @param {string} fieldId - 目標欄位 ID
+     */
+    toggleListening(fieldId) {
+        if (this.isListening) {
+            this.stopListening();
+        } else {
+            this.startListening(fieldId);
         }
     }
     
     /**
-     * 為特定欄位創建語音按鈕
-     * @param {string} fieldId 欄位ID
-     * @param {string} category 對應的分類
-     * @returns {HTMLElement} 語音按鈕元素
+     * 開始聆聽
+     * @param {string} fieldId - 目標欄位 ID
      */
-    createVoiceButton(fieldId, category) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'btn btn-sm btn-outline-primary voice-button me-1';
-        button.dataset.field = fieldId;
-        button.dataset.category = category;
+    startListening(fieldId) {
+        // 如果已經在聆聽，先停止
+        if (this.isListening) {
+            this.stopListening();
+        }
         
-        // 添加麥克風圖標
-        button.innerHTML = '<i class="fas fa-microphone"></i>';
-        
-        // 添加標題提示
-        button.title = `語音輸入到 ${this.getFieldLabel(fieldId)}`;
-        
-        // 點擊事件
-        button.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.toggleVoiceInput(fieldId, category);
-        });
-        
-        return button;
-    }
-    
-    /**
-     * 獲取欄位標籤文字
-     * @param {string} fieldId 欄位ID
-     * @returns {string} 欄位標籤
-     */
-    getFieldLabel(fieldId) {
-        const label = document.querySelector(`label[for="${fieldId}"]`);
-        return label ? label.textContent.trim() : fieldId;
-    }
-    
-    /**
-     * 切換語音輸入狀態
-     * @param {string} fieldId 欄位ID
-     * @param {string} category 分類類別
-     */
-    toggleVoiceInput(fieldId, category) {
-        // 如果選擇了當前已激活的欄位，則停止語音
-        if (this.isListening && this.currentField === fieldId) {
-            this.stopVoiceInput();
+        // 設置目標欄位
+        this.targetField = document.getElementById(fieldId);
+        if (!this.targetField) {
+            console.error(`無法找到欄位: ${fieldId}`);
             return;
         }
         
-        // 如果有其他欄位激活，先停止
-        if (this.isListening) {
-            this.stopVoiceInput();
+        // 設置狀態指示器
+        const voiceBtn = document.querySelector(`button[data-target="${fieldId}"]`);
+        if (voiceBtn) {
+            this.voiceButton = voiceBtn;
+            this.statusIndicator = voiceBtn.querySelector('.voice-status');
         }
         
-        // 設置當前欄位
-        this.currentField = fieldId;
-        
-        // 更新按鈕視覺效果
-        this.updateButtonUI(fieldId, true);
-        
-        // 開始語音識別
-        this.startVoiceInput();
-        
-        console.log(`開始語音輸入到 ${this.getFieldLabel(fieldId)} (${category})`);
+        // 開始識別
+        try {
+            this.recognition.start();
+            console.log('語音識別開始');
+            this.dispatchEvent('voice-recognition-start');
+        } catch (e) {
+            console.error('語音識別啟動失敗:', e);
+        }
     }
     
     /**
-     * 開始語音輸入
+     * 停止聆聽
      */
-    startVoiceInput() {
-        if (!this.isListening) {
+    stopListening() {
+        if (this.isListening) {
             try {
-                this.recognition.start();
-                // 顯示狀態指示器
-                this.createOrUpdateStatusIndicator();
-            } catch (error) {
-                console.error('啟動語音識別失敗: ', error);
-                this.updateStatusUI('error');
+                this.recognition.stop();
+                console.log('語音識別停止');
+            } catch (e) {
+                console.error('語音識別停止失敗:', e);
             }
         }
     }
     
     /**
-     * 停止語音輸入
-     * @param {boolean} analyze 是否自動分析對話
+     * 處理識別結果
+     * @param {string} result - 識別結果
+     * @param {number} confidence - 信心度
      */
-    stopVoiceInput(analyze = false) {
-        if (this.isListening) {
-            this.recognition.stop();
-            
-            // 重設按鈕視覺效果
-            if (this.currentField) {
-                this.updateButtonUI(this.currentField, false);
-            }
-            
-            this.currentField = null;
-            this.autoRestart = false;
-            
-            // 如果需要自動分析
-            if (analyze && this.analyzer) {
-                // 延遲500毫秒後分析，確保所有語音都被處理
-                setTimeout(() => {
-                    // 自動點擊分析按鈕
-                    const analyzeButton = document.getElementById('analyze-conversation-btn');
-                    if (analyzeButton) {
-                        console.log('自動分析對話');
-                        analyzeButton.click();
-                    } else {
-                        // 直接調用分析方法
-                        console.log('直接調用分析方法');
-                        this.analyzer.analyzeConversation();
-                    }
-                }, 500);
-            }
+    processResult(result, confidence) {
+        if (!result || !this.targetField) return;
+        
+        // 取得當前說話者
+        let currentSpeaker = 'doctor'; // 預設為醫生
+        if (window.speakerSelector) {
+            currentSpeaker = window.speakerSelector.getCurrentSpeaker();
         }
+        
+        // 更新目標欄位
+        this.updateTargetField(result);
+        
+        // 發送語音識別結果事件
+        this.dispatchEvent('voice-recognition-result', {
+            text: result,
+            confidence: confidence,
+            speaker: currentSpeaker,
+            targetField: this.targetField.id
+        });
     }
     
     /**
-     * 更新按鈕UI
-     * @param {string} fieldId 欄位ID
-     * @param {boolean} isActive 是否激活
+     * 更新目標欄位
+     * @param {string} text - 識別文本
      */
-    updateButtonUI(fieldId, isActive) {
-        // 重設所有按鈕
-        for (const [id, button] of Object.entries(this.voiceButtons)) {
-            button.classList.remove('btn-danger');
-            button.classList.add('btn-outline-primary');
-            
-            const icon = button.querySelector('i');
-            if (icon) {
-                icon.className = 'fas fa-microphone';
-            }
+    updateTargetField(text) {
+        if (!this.targetField) return;
+        
+        // 更新欄位值
+        const currentValue = this.targetField.value;
+        
+        // 如果欄位為空，直接設置值
+        if (!currentValue || currentValue.trim() === '') {
+            this.targetField.value = text;
+        } else {
+            // 否則，在現有內容後添加
+            this.targetField.value = currentValue + '。' + text;
         }
         
-        // 設置當前按鈕
-        if (isActive && this.voiceButtons[fieldId]) {
-            const button = this.voiceButtons[fieldId];
-            button.classList.remove('btn-outline-primary');
-            button.classList.add('btn-danger');
-            
-            const icon = button.querySelector('i');
-            if (icon) {
-                icon.className = 'fas fa-microphone-slash';
-            }
-        }
+        // 觸發 input 事件以更新相關狀態
+        const event = new Event('input', { bubbles: true });
+        this.targetField.dispatchEvent(event);
     }
     
     /**
-     * 創建或更新語音狀態指示器
-     * @param {string} status 狀態
-     * @param {string} text 顯示文字
+     * 顯示中間結果
+     * @param {string} text - 中間識別結果
      */
-    createOrUpdateStatusIndicator() {
-        if (!this.statusIndicator) {
-            // 創建浮動狀態指示器
-            this.statusIndicator = document.createElement('div');
-            this.statusIndicator.id = 'voice-status-indicator';
-            this.statusIndicator.className = 'card position-fixed';
-            this.statusIndicator.style.bottom = '20px';
-            this.statusIndicator.style.left = '50%';
-            this.statusIndicator.style.transform = 'translateX(-50%)';
-            this.statusIndicator.style.zIndex = '1050';
-            this.statusIndicator.style.minWidth = '300px';
-            this.statusIndicator.style.maxWidth = '90%';
-            this.statusIndicator.style.boxShadow = '0 0 10px rgba(0,0,0,0.2)';
-            
-            this.statusIndicator.innerHTML = `
-                <div class="card-body p-2">
-                    <div class="d-flex align-items-center">
-                        <div id="voice-status-dot" class="me-2" style="
-                            width: 12px;
-                            height: 12px;
-                            border-radius: 50%;
-                            background-color: ${this.STATUS_COLORS.ready};
-                        "></div>
-                        <div class="flex-grow-1">
-                            <div id="voice-status-text" class="small">準備中...</div>
-                            <div id="voice-interim-result" class="text-muted" style="
-                                font-size: 0.8rem;
-                                white-space: nowrap;
-                                overflow: hidden;
-                                text-overflow: ellipsis;
-                                max-width: 100%;
-                            "></div>
-                        </div>
-                        <button id="voice-stop-button" class="btn btn-sm btn-outline-danger ms-2">
-                            <i class="fas fa-stop"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(this.statusIndicator);
-            
-            // 添加停止按鈕事件
-            document.getElementById('voice-stop-button').addEventListener('click', () => {
-                this.stopVoiceInput();
-            });
-        }
-        
-        // 顯示指示器
-        this.statusIndicator.classList.remove('d-none');
-        
-        // 更新狀態
-        this.updateStatusUI('ready');
+    showInterimResult(text) {
+        // 未來可以添加中間結果顯示
     }
     
     /**
      * 更新狀態UI
-     * @param {string} status 狀態
-     * @param {string} text 顯示文字
      */
-    updateStatusUI(status, text) {
+    updateStatusUI() {
         if (!this.statusIndicator) return;
         
-        const statusDot = document.getElementById('voice-status-dot');
-        const statusText = document.getElementById('voice-status-text');
-        const interimResult = document.getElementById('voice-interim-result');
+        // 顯示狀態指示器
+        this.statusIndicator.classList.remove('d-none');
         
-        // 更新狀態點顏色
-        if (statusDot) {
-            statusDot.style.backgroundColor = this.STATUS_COLORS[status] || this.STATUS_COLORS.ready;
-        }
-        
-        // 更新狀態文字
-        if (statusText) {
-            let textContent = '準備中...';
-            
-            switch (status) {
-                case 'ready':
-                    textContent = '語音識別已就緒';
-                    break;
-                case 'listening':
-                    textContent = '正在聆聽...';
-                    if (this.currentField) {
-                        textContent += ` (${this.getFieldLabel(this.currentField)})`;
-                    }
-                    break;
-                case 'processing':
-                    textContent = '處理中...';
-                    break;
-                case 'error':
-                    textContent = `錯誤: ${text || '未知錯誤'}`;
-                    break;
-                default:
-                    textContent = '語音識別系統';
-            }
-            
-            statusText.textContent = textContent;
-        }
-        
-        // 更新臨時結果
-        if (interimResult) {
-            interimResult.textContent = text || this.interimResult || '';
-        }
-        
-        // 如果停止狀態，1秒後隱藏指示器
-        if (status === 'ready' && !this.isListening) {
-            setTimeout(() => {
-                if (this.statusIndicator && !this.isListening) {
-                    this.statusIndicator.classList.add('d-none');
-                }
-            }, 1000);
+        // 更新狀態顏色
+        switch (this.status) {
+            case 'listening':
+                this.statusIndicator.style.backgroundColor = '#28a745'; // 綠色
+                this.voiceButton.classList.add('active');
+                break;
+            case 'processing':
+                this.statusIndicator.style.backgroundColor = '#ffc107'; // 黃色
+                break;
+            case 'inactive':
+            default:
+                this.statusIndicator.style.backgroundColor = '#ccc'; // 灰色
+                this.voiceButton.classList.remove('active');
+                break;
         }
     }
     
     /**
-     * 創建全局語音控制按鈕
+     * 發送自定義事件
+     * @param {string} eventName - 事件名稱
+     * @param {Object} detail - 事件詳情
      */
-    createGlobalVoiceControls() {
-        // 創建浮動按鈕容器
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'position-fixed';
-        buttonContainer.style.bottom = '20px';
-        buttonContainer.style.right = '20px';
-        buttonContainer.style.zIndex = '1040';
-        
-        // 主語音按鈕
-        const mainButton = document.createElement('button');
-        mainButton.id = 'global-voice-button';
-        mainButton.className = 'btn btn-primary rounded-circle d-flex align-items-center justify-content-center';
-        mainButton.style.width = '60px';
-        mainButton.style.height = '60px';
-        mainButton.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-        mainButton.title = '開始智能語音輸入';
-        mainButton.innerHTML = '<i class="fas fa-microphone fa-lg"></i>';
-        
-        buttonContainer.appendChild(mainButton);
-        document.body.appendChild(buttonContainer);
-        
-        // 添加點擊事件
-        mainButton.addEventListener('click', () => {
-            if (this.isListening) {
-                // 停止錄音並自動分析對話
-                this.stopVoiceInput(true);
-                mainButton.querySelector('i').className = 'fas fa-microphone fa-lg';
-                mainButton.classList.remove('btn-danger');
-                mainButton.classList.add('btn-primary');
-            } else {
-                // 啟動智能語音模式
-                this.startSmartVoiceMode();
-                mainButton.querySelector('i').className = 'fas fa-microphone-slash fa-lg';
-                mainButton.classList.remove('btn-primary');
-                mainButton.classList.add('btn-danger');
-            }
-        });
+    dispatchEvent(eventName, detail = {}) {
+        const event = new CustomEvent(eventName, { detail });
+        document.dispatchEvent(event);
     }
     
     /**
-     * 啟動智能語音模式 - 使用對話分析器自動歸類
+     * 智能語音模式 - 一鍵啟動整體醫療對話記錄
      */
     startSmartVoiceMode() {
-        // 確保對話分析器已連接
-        if (!this.analyzer) {
-            this.connectToAnalyzer();
-        }
-        
-        // 設置為智能模式
-        this.currentField = null;
-        this.autoRestart = true;
-        
-        // 顯示對話窗口
-        if (this.analyzer) {
-            this.analyzer.toggleVisibility(true);
-        }
-        
-        // 創建或更新語音狀態提示
-        this.createOrUpdateSmartModeIndicator();
-        
-        // 開始語音識別
-        this.startVoiceInput();
-        
         console.log('啟動智能語音模式');
-    }
-    
-    /**
-     * 創建智能模式指示器 - 顯示正在聽取對話的提示
-     */
-    createOrUpdateSmartModeIndicator() {
-        // 創建提示框
-        if (!document.getElementById('smart-mode-indicator')) {
-            const indicator = document.createElement('div');
-            indicator.id = 'smart-mode-indicator';
-            indicator.className = 'alert alert-info position-fixed d-flex align-items-center';
-            indicator.style.bottom = '85px';
-            indicator.style.left = '20px';
-            indicator.style.zIndex = '1040';
-            indicator.style.maxWidth = '80%';
-            indicator.style.opacity = '0.9';
-            indicator.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
-            
-            indicator.innerHTML = `
-                <div class="d-flex align-items-center">
-                    <div class="me-2 position-relative" style="width:24px;height:24px;">
-                        <span class="position-absolute top-0 start-0 bg-danger rounded-circle" 
-                              style="width:8px;height:8px;animation:pulse 1.5s infinite;"></span>
-                        <i class="fas fa-microphone text-primary fs-5"></i>
-                    </div>
-                    <div>
-                        <div class="fw-bold">醫療對話分析進行中</div>
-                        <div class="small">系統正在聆聽並自動分類您的對話內容</div>
-                    </div>
-                </div>
-                <button type="button" class="btn-close ms-auto" id="close-smart-indicator"></button>
-            `;
-            
-            // 添加樣式
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes pulse {
-                    0% { transform: scale(1); opacity: 1; }
-                    50% { transform: scale(1.5); opacity: 0.7; }
-                    100% { transform: scale(1); opacity: 1; }
-                }
-            `;
-            document.head.appendChild(style);
-            
-            document.body.appendChild(indicator);
-            
-            // 關閉按鈕事件
-            document.getElementById('close-smart-indicator').addEventListener('click', () => {
-                indicator.remove();
-            });
-        }
-    }
-    
-    /**
-     * 連接到對話分析器
-     */
-    connectToAnalyzer() {
-        // 檢查是否已有對話分析器實例
-        if (window.conversationAnalyzer) {
-            this.analyzer = window.conversationAnalyzer;
-            console.log('已連接到現有對話分析器');
-        } else {
-            // 創建新的對話分析器
-            try {
-                this.analyzer = new ConversationAnalyzer();
-                this.analyzer.initialize();
-                window.conversationAnalyzer = this.analyzer;
-                console.log('已創建並初始化對話分析器');
-            } catch (error) {
-                console.error('連接到對話分析器失敗: ', error);
-                this.analyzer = null;
-            }
-        }
-    }
-    
-    /**
-     * 顯示語音錯誤訊息
-     * @param {string} error 錯誤訊息
-     */
-    showVoiceError(error) {
-        let errorMessage = '語音識別發生錯誤';
         
-        switch (error) {
-            case 'network':
-                errorMessage = '網絡連接錯誤，語音識別無法使用';
-                break;
-            case 'service-not-allowed':
-                errorMessage = '語音服務不可用，請確認瀏覽器權限設置';
-                break;
-            case 'aborted':
-                errorMessage = '語音識別被中斷';
-                break;
-            case 'no-speech':
-                errorMessage = '未檢測到語音';
-                break;
-            case 'not-allowed':
-                errorMessage = '麥克風訪問被拒絕，請檢查瀏覽器權限設置';
-                break;
-            default:
-                errorMessage = `語音識別錯誤: ${error}`;
+        // 顯示說話者選擇器(如果存在)
+        if (window.speakerSelector) {
+            window.speakerSelector.show();
         }
         
-        // 使用Bootstrap的toast或alert顯示錯誤
-        const errorToast = document.createElement('div');
-        errorToast.className = 'toast position-fixed top-0 end-0 m-3';
-        errorToast.setAttribute('role', 'alert');
-        errorToast.setAttribute('aria-live', 'assertive');
-        errorToast.setAttribute('aria-atomic', 'true');
-        errorToast.style.zIndex = '1060';
-        
-        errorToast.innerHTML = `
-            <div class="toast-header bg-danger text-white">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong class="me-auto">語音識別錯誤</strong>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body">
-                ${errorMessage}
-            </div>
-        `;
-        
-        document.body.appendChild(errorToast);
-        
-        // 顯示toast
-        const toast = new bootstrap.Toast(errorToast, { autohide: true, delay: 5000 });
-        toast.show();
-        
-        // 監聽關閉事件移除DOM元素
-        errorToast.addEventListener('hidden.bs.toast', () => {
-            document.body.removeChild(errorToast);
-        });
+        // 開始語音識別(針對病史欄位)
+        this.startListening('history_present_illness');
     }
 }
 
-// 在頁面載入完成後初始化語音系統
-document.addEventListener('DOMContentLoaded', () => {
-    // 檢查是否在醫療表單頁面
-    if (document.getElementById('caseGeneratorForm') || 
-        document.querySelector('form[action*="generate_case"]') ||
-        document.getElementById('chief_complaint') ||
-        document.getElementById('medical-case-view')) {
-        
-        console.log('醫療表單頁面已加載，初始化語音系統');
-        
-        // 創建並初始化醫療語音系統
-        const voiceSystem = new MedicalVoiceSystem();
-        if (voiceSystem.initialize()) {
-            // 存儲為全局變量以便調試和頁面內調用
-            window.medicalVoiceSystem = voiceSystem;
-        }
-    } else {
-        console.log('非醫療表單頁面，不初始化語音系統');
-    }
-});
+// 創建全局實例
+window.voiceIntegration = new VoiceIntegration();
 
-// 添加語音按鈕的CSS樣式
+// 在頁面加載完成後初始化
 document.addEventListener('DOMContentLoaded', () => {
-    const style = document.createElement('style');
-    style.innerHTML = `
-        .voice-button-group {
-            flex-wrap: wrap;
-            margin-bottom: 0.5rem;
-        }
-        
-        .voice-button {
-            width: auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 0.25rem;
-            margin-bottom: 0.25rem;
-        }
-        
-        /* 閃爍效果 */
-        @keyframes flash-green {
-            0% { background-color: rgba(40, 167, 69, 0.2); }
-            50% { background-color: rgba(40, 167, 69, 0.5); }
-            100% { background-color: transparent; }
-        }
-        
-        .flash-effect {
-            animation: flash-green 1s ease-out;
-        }
-    `;
-    document.head.appendChild(style);
+    // 初始化語音整合系統
+    if (window.voiceIntegration) {
+        window.voiceIntegration.initialize();
+        console.log('醫療表單頁面已加載，初始化語音系統');
+    }
+    
+    // 添加智能按鈕事件
+    const smartVoiceBtn = document.getElementById('smart-voice-btn');
+    if (smartVoiceBtn) {
+        smartVoiceBtn.addEventListener('click', () => {
+            if (window.voiceIntegration) {
+                window.voiceIntegration.startSmartVoiceMode();
+            }
+        });
+    }
 });
