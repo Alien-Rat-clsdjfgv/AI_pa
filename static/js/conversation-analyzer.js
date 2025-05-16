@@ -109,20 +109,8 @@ class ConversationAnalyzer {
         // 監聽語音識別結果
         document.addEventListener('voice-recognition-result', (event) => {
             if (event.detail && event.detail.text) {
-                // 使用說話者選擇器獲取當前說話者
-                if (window.speakerSelector) {
-                    this.currentSpeaker = window.speakerSelector.getCurrentSpeaker();
-                }
-                
-                // 分析對話內容
-                this.analyzeSpeech(event.detail.text, this.currentSpeaker);
-            }
-        });
-        
-        // 監聽說話者變更
-        document.addEventListener('speaker-changed', (event) => {
-            if (event.detail && event.detail.speaker) {
-                this.currentSpeaker = event.detail.speaker;
+                // 分析對話內容 - 不區分說話者
+                this.analyzeSpeech(event.detail.text, 'unknown');
             }
         });
     }

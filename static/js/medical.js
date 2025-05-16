@@ -1,11 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('醫療頁面初始化開始');
     
-    // 初始化說話者選擇器
-    if (window.speakerSelector) {
-        window.speakerSelector.initialize();
-    }
-    
     // 為常見主訴下拉菜單項添加點擊事件
     document.querySelectorAll('[data-complaint]').forEach(item => {
         item.addEventListener('click', function(e) {
