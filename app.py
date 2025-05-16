@@ -1,63 +1,62 @@
 import os
-import logging
-from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
-from werkzeug.middleware.proxy_fix import ProxyFix
+import datetime
+import json
+import logging
 
-# Initialize application
+# 初始化日誌
+logging.basicConfig(level=logging.DEBUG)
+
 class Base(DeclarativeBase):
     pass
 
 db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
-app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-# Configure database (SQLite for simplicity)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///openai_tester.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+# 設定應用配置
+app.secret_key = os.environ.get("SESSION_SECRET", "dev_secret_key")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
 }
 
-# Initialize database
+# 初始化數據庫
 db.init_app(app)
 
-# Import models and create database tables
+# 自定義模板過濾器
+@app.template_filter("nl2br")
+def nl2br(value):
+    """將換行符轉換為HTML的<br>標籤"""
+    if value:
+        return value.replace("\n", "<br>")
+    return ""
+
+# 導入路由和模型
 with app.app_context():
-    # Import models
-    from models import TestCase, TestRun
+    # 導入路由模塊
+    from routes.medical_routes import medical_bp
+    from routes.original_routes import original_bp
+    
+    # 註冊藍圖
+    app.register_blueprint(medical_bp)
+    app.register_blueprint(original_bp)
+    
+    # 導入模型
+    import models  # 原始模型
     from models.medical_case import MedicalCase, MedicalSpecialty, Diagnosis, CaseTemplate
     
-    # Make sure templates directory exists
-    if not os.path.exists(os.path.join(app.root_path, 'templates', 'medical')):
-        os.makedirs(os.path.join(app.root_path, 'templates', 'medical'))
-    
-    # Create database tables
+    # 創建數據庫表
     db.create_all()
-    logging.debug("Database tables created")
 
-# Import routes directly
-import routes
-from routes import *
-
-# Import medical routes
-try:
-    import routes.medical_routes
-    from routes.medical_routes import *
-    logging.debug("Medical routes imported successfully")
-except ImportError as e:
-    logging.error(f"Error importing medical routes: {e}")
-
-# Add Jinja2 filter to convert new lines to <br> tags
-@app.template_filter('nl2br')
-def nl2br(value):
-    if value:
-        return value.replace('\n', '<br>')
-    return value
+# 主路由重定向到醫療模塊
+@app.route("/")
+def index():
+    return redirect(url_for("medical.medical_home"))
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # 使用端口8080而不是5000，以避免端口衝突
+    app.run(host="0.0.0.0", port=8080, debug=True)
+
