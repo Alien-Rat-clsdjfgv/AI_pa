@@ -5,10 +5,15 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[data-complaint]').forEach(item => {
         item.addEventListener('click', function(e) {
             e.preventDefault();
+            // 取得主訴內容
             const complaint = this.getAttribute('data-complaint');
-            const chiefComplaintField = document.getElementById('chief_complaint');
-            if (chiefComplaintField) {
-                chiefComplaintField.value = complaint;
+            // 如果有設定 data-target 就用它，否則預設填到 id="chief_complaint" 的欄位
+            const targetId = this.getAttribute('data-target') || 'chief_complaint';
+            const field = document.getElementById(targetId);
+            if (field) {
+                field.value = complaint;
+            } else {
+                console.error(`找不到輸入框 #${targetId}，請確認 data-target 或元素 id 是否正確。`);
             }
         });
     });

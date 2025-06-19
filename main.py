@@ -1,7 +1,13 @@
-import logging
-from app import app
+from dotenv import load_dotenv
+load_dotenv()
 
-# Setup logging for easier debugging
+import logging
+from app import app, db
+from routes.original_routes import original_bp
+
+# 註冊原始測試模組
+app.register_blueprint(original_bp)
+
 logging.basicConfig(level=logging.DEBUG)
 
 if __name__ == "__main__":

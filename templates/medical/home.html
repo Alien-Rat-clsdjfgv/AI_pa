@@ -544,7 +544,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Common complaints dropdown
     const complaintItems = document.querySelectorAll('[data-complaint]');
-    const chiefComplaintInput = document.getElementById('chiefComplaint');
+    const chiefComplaintInput = document.getElementById('chief_complaint');
     
     complaintItems.forEach(item => {
         item.addEventListener('click', function(e) {
@@ -555,14 +555,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Present Illness Generation
     const generatePresentIllnessBtn = document.getElementById('generatePresentIllnessBtn');
-    const presentIllnessTextarea = document.getElementById('presentIllness');
+    const presentIllnessTextarea = document.getElementById('history_present_illness');
     const generatingPresentIllnessAlert = document.getElementById('generatingPresentIllnessAlert');
     const presentIllnessErrorAlert = document.getElementById('presentIllnessErrorAlert');
     
     if (generatePresentIllnessBtn) {
         generatePresentIllnessBtn.addEventListener('click', function() {
             // Get necessary values
-            const chiefComplaint = document.getElementById('chiefComplaint').value;
+            const chiefComplaint = document.getElementById('chief_complaint').value;
             const patientAge = document.getElementById('patientAge').value;
             const patientGender = document.getElementById('patientGender').value;
             const accompaniedSymptoms = document.getElementById('accompaniedSymptoms')?.value || '';
@@ -649,7 +649,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Get form values
         const specialty = document.getElementById('specialty').value;
-        const chiefComplaint = document.getElementById('chiefComplaint').value;
+        const chiefComplaint = document.getElementById('chief_complaint').value;
         const patientAge = document.getElementById('patientAge').value;
         const patientGender = document.getElementById('patientGender').value;
         const complexity = document.getElementById('complexity').value;

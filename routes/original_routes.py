@@ -1,9 +1,10 @@
 """原始路由模塊 - 保留基本功能的相容性"""
 
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, flash
-from app import db
+from extensions import db
 from utils import get_api_key
-import openai_client
+from services.openai_client import validate_api_key, run_prompt_test
+
 
 # 創建藍圖
 original_bp = Blueprint('original', __name__, url_prefix='/original')
@@ -18,7 +19,7 @@ def index():
     # 呈現模板
     return render_template('index.html', api_connected=api_connected)
     
-@original_bp.route('/connect-api', methods=['POST'])
+@original_bp.route('/connect', methods=['POST'])
 def connect_api():
     """API 端點來測試 API 金鑰連接"""
     api_key = request.json.get('api_key')
@@ -28,14 +29,14 @@ def connect_api():
     
     try:
         # 驗證 API 金鑰
-        result = openai_client.validate_api_key(api_key)
+        valid = validate_api_key(api_key)
         
-        if result.get('valid'):
+        if valid:
             # 保存 API 金鑰到會話
             session['api_key'] = api_key
             
             # 獲取可用模型
-            models = result.get('models', [])
+            models = []
             
             return jsonify({
                 'success': True,
@@ -45,13 +46,13 @@ def connect_api():
         else:
             return jsonify({
                 'success': False,
-                'message': result.get('error', 'API 金鑰驗證失敗')
+                'message': 'API 金鑰驗證失敗'
             })
     
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
         
-@original_bp.route('/disconnect-api', methods=['POST'])
+@original_bp.route('/disconnect', methods=['POST'])
 def disconnect_api():
     """從會話中刪除 API 金鑰"""
     session.pop('api_key', None)

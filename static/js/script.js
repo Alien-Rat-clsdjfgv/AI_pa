@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Function to check if API key is connected
 function checkApiConnection() {
     // Send request to check API connection
-    fetch('/api/connect', {
+    fetch('/original/connect', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -58,7 +58,7 @@ function connectApiKey(apiKey) {
     connectButton.disabled = true;
     
     // Send request to connect API key
-    fetch('/api/connect', {
+    fetch('/original/connect', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -99,7 +99,7 @@ function connectApiKey(apiKey) {
 
 // Function to disconnect API key
 function disconnectApiKey() {
-    fetch('/api/disconnect', {
+    fetch('/original/disconnect', {
         method: 'POST'
     })
     .then(response => response.json())
@@ -267,7 +267,7 @@ function setupTestForm() {
         runButton.disabled = true;
         
         // Submit form data
-        fetch('/api/test', {
+        fetch('/original/test', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
